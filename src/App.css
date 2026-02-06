@@ -195,13 +195,20 @@ body {
   cursor: grabbing;
 }
 
-/* Force standard cursor (override Mapbox grey dot) */
-.map-container .mapboxgl-canvas {
+/* Force standard cursor (override Mapbox grey dot / custom cursor) */
+.map-container .mapboxgl-canvas,
+.map-container .mapboxgl-canvas-container {
   cursor: grab !important;
 }
 
-.map-container .mapboxgl-canvas:active {
+.map-container .mapboxgl-canvas:active,
+.map-container .mapboxgl-canvas-container:active {
   cursor: grabbing !important;
+}
+
+/* When hovering clickable features, Map.jsx sets pointer on canvas; ensure container matches */
+.map-container .mapboxgl-canvas-container.mapboxgl-track-pointer {
+  cursor: pointer !important;
 }
 
 .map-error {
@@ -262,11 +269,11 @@ body {
   accent-color: #16a34a;
 }
 
-/* Legend */
+/* Legend – bottom left, above "Show observation points" */
 .legend {
   position: absolute;
-  top: 20px;
-  right: 60px;
+  bottom: 130px;
+  left: 20px;
   background: white;
   padding: 16px;
   border-radius: 8px;
