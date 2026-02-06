@@ -2,9 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "outputDirectory": "dist",
-  "functions": {
-    "api/**/*.js": {}
-  },
   "rewrites": [
     {
       "source": "/((?!api/).*)",
