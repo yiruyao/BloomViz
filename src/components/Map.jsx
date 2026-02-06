@@ -7,11 +7,12 @@ import ResourcesPanel from './ResourcesPanel';
 // You'll need to set this in your .env file as VITE_MAPBOX_TOKEN
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// San Mateo County center coordinates
-const INITIAL_CENTER = [-122.35, 37.45];
-const INITIAL_ZOOM = 10;
+const DEFAULT_CENTER = [-122.35, 37.45];
+const DEFAULT_ZOOM = 10;
 
-export default function Map({ trailsGeoJSON, observationsGeoJSON }) {
+export default function Map({ trailsGeoJSON, observationsGeoJSON, center, zoom }) {
+  const mapCenter = center || DEFAULT_CENTER;
+  const mapZoom = zoom ?? DEFAULT_ZOOM;
   const mapContainer = useRef(null);
   const map = useRef(null);
   const [showObservations, setShowObservations] = useState(false);
@@ -41,8 +42,8 @@ export default function Map({ trailsGeoJSON, observationsGeoJSON }) {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/outdoors-v12',
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM,
+      center: mapCenter,
+      zoom: mapZoom,
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -59,6 +60,13 @@ export default function Map({ trailsGeoJSON, observationsGeoJSON }) {
       }
     };
   }, []);
+
+  // Fly to new center/zoom when state changes
+  useEffect(() => {
+    if (map.current && mapLoaded) {
+      map.current.flyTo({ center: mapCenter, zoom: mapZoom, duration: 1000 });
+    }
+  }, [mapLoaded, mapCenter, mapZoom]);
 
   // Add/update trails layer
   useEffect(() => {

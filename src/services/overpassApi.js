@@ -6,6 +6,38 @@
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 
 /**
+ * Fetch hiking trails for a US state from OpenStreetMap
+ * @param {string} stateName - Full state name: "California", "Oregon", "Washington"
+ * @returns {Promise<object>} GeoJSON FeatureCollection
+ */
+export async function fetchTrailsForState(stateName) {
+  const query = `
+[out:json][timeout:300];
+area["name"="${stateName}"]["admin_level"="4"]->.state;
+(
+  way["highway"~"path|footway|track"]["name"](area.state);
+  relation["route"="hiking"](area.state);
+);
+out body geom;
+`;
+
+  const response = await fetch(OVERPASS_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `data=${encodeURIComponent(query)}`,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return convertToGeoJSON(data.elements);
+}
+
+/**
  * Fetch hiking trails in San Mateo County from OpenStreetMap
  * Returns trails as GeoJSON features grouped by name
  */

@@ -1,4 +1,20 @@
-# React + Vite
+# BloomScout
+
+Wildflower trail finder for California, Oregon, and Washington. Uses OpenStreetMap trails + iNaturalist flowering observations (7-day window), with spatial analysis and Mapbox.
+
+## Setup
+
+1. **Supabase**: Create a project, run `supabase/schema.sql` in the SQL Editor.
+2. **Env**: Copy `.env.example` to `.env.local`. Set `VITE_MAPBOX_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`. For cron, set `CRON_SECRET` (e.g. `openssl rand -hex 32`).
+3. **Trails**: Backfill trails once: `node scripts/generate-trails.js` (requires Supabase env in `.env.local`).
+4. **Cron**: Deploy to Vercel; cron runs daily at 6 AM UTC to refresh observations. To backfill observations immediately, call `GET /api/cron/refresh-observations` with `Authorization: Bearer <CRON_SECRET>`.
+
+## Run locally
+
+- **Full stack** (frontend + API): `vercel dev`
+- **Frontend only**: `npm run dev` (API calls will 404 unless you set `VITE_API_BASE_URL` to your deployed API).
+
+## React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

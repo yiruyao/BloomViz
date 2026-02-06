@@ -1,12 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchSanMateoTrails } from './services/overpassApi';
-import { fetchFloweringObservations } from './services/iNaturalistApi';
+import { fetchTrails, fetchObservations } from './services/api';
 import { calculateTrailDensity, getAnalysisSummary, getSpeciesBreakdown } from './utils/spatialAnalysis';
+import { STATES } from './config/states';
 import Map from './components/Map';
 import Legend from './components/Legend';
+import StateSelector from './components/StateSelector';
 import './App.css';
 
+const DEFAULT_STATE = 'ca';
+
 function App() {
+  const [selectedState, setSelectedState] = useState(DEFAULT_STATE);
   const [trails, setTrails] = useState(null);
   const [observations, setObservations] = useState(null);
   const [results, setResults] = useState(null);
@@ -15,7 +19,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState('');
-  const [activeTab, setActiveTab] = useState('map'); // 'map' or 'table'
+  const [activeTab, setActiveTab] = useState('map');
 
   useEffect(() => {
     async function loadData() {
@@ -23,36 +27,25 @@ function App() {
         setLoading(true);
         setError(null);
 
-        // Fetch trails and observations in parallel
-        setLoadingStatus('Fetching trails from OpenStreetMap...');
-        const trailsPromise = fetchSanMateoTrails();
-        
-        setLoadingStatus('Fetching flowering observations from iNaturalist...');
-        const observationsPromise = fetchFloweringObservations();
-
+        setLoadingStatus(`Loading ${STATES[selectedState]?.name || selectedState}...`);
         const [trailsData, observationsData] = await Promise.all([
-          trailsPromise,
-          observationsPromise,
+          fetchTrails(selectedState),
+          fetchObservations(selectedState),
         ]);
 
         setTrails(trailsData);
         setObservations(observationsData);
 
-        console.log('Trails loaded:', trailsData.features.length);
-        console.log('Observations loaded:', observationsData.features.length);
+        const trailCount = trailsData?.features?.length ?? 0;
+        const obsCount = observationsData?.features?.length ?? 0;
+        console.log('Trails loaded:', trailCount, 'Observations loaded:', obsCount);
 
-        // Perform spatial analysis
         setLoadingStatus('Performing spatial analysis...');
         const analysisResults = calculateTrailDensity(trailsData, observationsData);
         setResults(analysisResults);
 
-        // Calculate summary stats
-        const summaryStats = getAnalysisSummary(analysisResults);
-        setSummary(summaryStats);
-
-        // Get species breakdown
-        const species = getSpeciesBreakdown(analysisResults);
-        setSpeciesBreakdown(species);
+        setSummary(getAnalysisSummary(analysisResults));
+        setSpeciesBreakdown(getSpeciesBreakdown(analysisResults));
 
         setLoadingStatus('');
         setLoading(false);
@@ -64,7 +57,7 @@ function App() {
     }
 
     loadData();
-  }, []);
+  }, [selectedState]);
 
   // Create GeoJSON with observation counts for the map
   const trailsWithCounts = useMemo(() => {
@@ -87,12 +80,11 @@ function App() {
       <div className="app">
         <header className="header">
           <h1>BloomScout</h1>
-          <p>Wildflower Trail Finder - San Mateo County</p>
+          <p>Wildflower Trail Finder</p>
         </header>
         <div className="loading">
           <div className="spinner"></div>
           <p>{loadingStatus || 'Loading...'}</p>
-          <p className="hint">This may take 10-30 seconds (Overpass API can be slow)</p>
         </div>
       </div>
     );
@@ -103,7 +95,7 @@ function App() {
       <div className="app">
         <header className="header">
           <h1>BloomScout</h1>
-          <p>Wildflower Trail Finder - San Mateo County</p>
+          <p>Wildflower Trail Finder</p>
         </header>
         <div className="error">
           <h2>Error Loading Data</h2>
@@ -119,14 +111,21 @@ function App() {
       <header className="header compact">
         <div className="header-content">
           <h1>BloomScout</h1>
-          <p>Wildflower Trail Finder - San Mateo County</p>
+          <p>Wildflower Trail Finder – {STATES[selectedState]?.name ?? selectedState}</p>
         </div>
-        {summary && (
-          <div className="header-stats">
-            <span><strong>{summary.trailsWithObservations}</strong> active trails</span>
-            <span><strong>{observations?.features?.length || 0}</strong> observations</span>
-          </div>
-        )}
+        <div className="header-actions">
+          <StateSelector
+            value={selectedState}
+            onChange={setSelectedState}
+            disabled={loading}
+          />
+          {summary && (
+            <div className="header-stats">
+              <span><strong>{summary.trailsWithObservations}</strong> active trails</span>
+              <span><strong>{observations?.features?.length || 0}</strong> observations</span>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Tab Navigation */}
@@ -152,6 +151,8 @@ function App() {
             <Map 
               trailsGeoJSON={trailsWithCounts} 
               observationsGeoJSON={observations}
+              center={STATES[selectedState]?.center}
+              zoom={STATES[selectedState]?.zoom}
             />
             <Legend />
           </div>
@@ -183,7 +184,7 @@ function App() {
                   </div>
                 </div>
                 <p className="buffer-note">
-                  Buffer: {summary.bufferDistance}m around trails | Data: Last 2 weeks
+                  Buffer: {summary.bufferDistance}m around trails | Data: Last 7 days
                 </p>
               </section>
             )}
@@ -239,7 +240,7 @@ function App() {
                   </tbody>
                 </table>
               ) : (
-                <p className="no-results">No trails found in San Mateo County.</p>
+                <p className="no-results">No trails found for this state.</p>
               )}
             </section>
           </div>

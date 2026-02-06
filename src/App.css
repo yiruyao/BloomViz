@@ -64,6 +64,36 @@ body {
   text-align: left;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.state-selector {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.state-selector:hover:not(:disabled) {
+  background: rgba(255,255,255,0.25);
+}
+
+.state-selector:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.state-selector option {
+  color: #1e293b;
+}
+
 .header-stats {
   display: flex;
   gap: 20px;

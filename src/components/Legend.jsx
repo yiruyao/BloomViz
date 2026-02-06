@@ -13,7 +13,7 @@ export default function Legend() {
   return (
     <div className="legend">
       <h4>Trail Activity</h4>
-      <p className="legend-subtitle">Flowering observations (last 2 weeks)</p>
+      <p className="legend-subtitle">Flowering observations (last 7 days)</p>
       
       <div className="legend-scale">
         <div 
