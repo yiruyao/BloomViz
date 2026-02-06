@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. **Create tables** – In [Supabase](https://supabase.com/dashboard) → your project → **SQL Editor**, run the contents of `supabase/schema.sql` (creates `trails` and `observations`).
+1. **Create tables** – In [Supabase](https://supabase.com/dashboard) → your project → **SQL Editor**, run the contents of `supabase/schema.sql` (creates `trails`, `observations`, and `trail_observation_counts`).
 2. **Project running** – If the project is paused, use **Restore project** in the dashboard.
 3. **Env** – In project root, `.env` or `.env.local` must have:
    - `SUPABASE_URL` (e.g. `https://xxxx.supabase.co`)
@@ -21,5 +21,12 @@ npm run fill-observations
 npm run fill-trails
 # or: node scripts/generate-trails.js
 ```
+
+**Trail → observation counts (precomputed; run after observations/trails are filled):**
+```bash
+node scripts/refresh-trail-counts.js
+# or one state: node scripts/refresh-trail-counts.js --state=ca
+```
+This fills `trail_observation_counts` so the app can skip client-side spatial analysis and load faster. Run again whenever observations are refreshed (e.g. after cron or backfill).
 
 If you see *"Could not query the database for the schema cache"*, check: project not paused, correct URL and service key in env, and that the schema has been run in SQL Editor.

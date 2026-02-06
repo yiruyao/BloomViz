@@ -33,3 +33,16 @@ CREATE TABLE IF NOT EXISTS observations (
 
 CREATE INDEX IF NOT EXISTS idx_observations_state_date
   ON observations(state, observed_on DESC);
+
+-- Pre-computed trail → observation counts (refreshed by script/cron; avoids client-side spatial analysis)
+CREATE TABLE IF NOT EXISTS trail_observation_counts (
+  state VARCHAR(2) NOT NULL,
+  trail_name TEXT NOT NULL,
+  observation_count INT NOT NULL DEFAULT 0,
+  species_breakdown JSONB NOT NULL DEFAULT '[]',
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (state, trail_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trail_observation_counts_state
+  ON trail_observation_counts(state);

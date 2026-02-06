@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await supabase
       .from('observations')
-      .select('*')
+      .select('id, species, scientific_name, observed_on, quality_grade, user_login, photo_url, geojson')
       .eq('state', state)
       .gte('observed_on', dateStr)
       .order('observed_on', { ascending: false });

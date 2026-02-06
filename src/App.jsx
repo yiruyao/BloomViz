@@ -1,6 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
-import { fetchTrails, fetchObservations } from './services/api';
-import { calculateTrailDensity, getAnalysisSummary, getSpeciesBreakdown } from './utils/spatialAnalysis';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { fetchTrails, fetchObservations, fetchTrailCounts } from './services/api';
+import {
+  calculateTrailDensity,
+  buildResultsFromCounts,
+  getAnalysisSummary,
+  getSpeciesBreakdown,
+} from './utils/spatialAnalysis';
 import { STATES } from './config/states';
 import Map from './components/Map';
 import Legend from './components/Legend';
@@ -8,6 +13,9 @@ import StateSelector from './components/StateSelector';
 import './App.css';
 
 const DEFAULT_STATE = 'ca';
+
+// Per-state cache: once a state is loaded, switching back is instant (no refetch, no re-analysis)
+const stateDataCache = new Map();
 
 function App() {
   const [selectedState, setSelectedState] = useState(DEFAULT_STATE);
@@ -20,18 +28,39 @@ function App() {
   const [error, setError] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState('');
   const [activeTab, setActiveTab] = useState('map');
+  const mountRef = useRef(true);
 
   useEffect(() => {
+    const stateKey = selectedState.toLowerCase();
+
+    // Restore from cache when switching back to a previously loaded state
+    const cached = stateDataCache.get(stateKey);
+    if (cached) {
+      setTrails(cached.trails);
+      setObservations(cached.observations);
+      setResults(cached.results);
+      setSummary(cached.summary);
+      setSpeciesBreakdown(cached.speciesBreakdown);
+      setLoading(false);
+      setError(null);
+      setLoadingStatus('');
+      return;
+    }
+
+    mountRef.current = true;
     async function loadData() {
       try {
         setLoading(true);
         setError(null);
 
         setLoadingStatus(`Loading ${STATES[selectedState]?.name || selectedState}...`);
-        const [trailsData, observationsData] = await Promise.all([
+        const [trailsData, observationsData, trailCountsData] = await Promise.all([
           fetchTrails(selectedState),
           fetchObservations(selectedState),
+          fetchTrailCounts(selectedState).catch(() => null),
         ]);
+
+        if (!mountRef.current) return;
 
         setTrails(trailsData);
         setObservations(observationsData);
@@ -40,16 +69,34 @@ function App() {
         const obsCount = observationsData?.features?.length ?? 0;
         console.log('Trails loaded:', trailCount, 'Observations loaded:', obsCount);
 
-        setLoadingStatus('Performing spatial analysis...');
-        const analysisResults = calculateTrailDensity(trailsData, observationsData);
+        let analysisResults;
+        if (Array.isArray(trailCountsData) && trailCountsData.length > 0) {
+          analysisResults = buildResultsFromCounts(trailsData, trailCountsData);
+          console.log('Using precomputed trail counts');
+        } else {
+          setLoadingStatus('Performing spatial analysis...');
+          analysisResults = calculateTrailDensity(trailsData, observationsData);
+        }
         setResults(analysisResults);
 
-        setSummary(getAnalysisSummary(analysisResults));
-        setSpeciesBreakdown(getSpeciesBreakdown(analysisResults));
+        const newSummary = getAnalysisSummary(analysisResults);
+        const newSpeciesBreakdown = getSpeciesBreakdown(analysisResults);
+        setSummary(newSummary);
+        setSpeciesBreakdown(newSpeciesBreakdown);
+
+        // Cache this state so switching back is instant
+        stateDataCache.set(stateKey, {
+          trails: trailsData,
+          observations: observationsData,
+          results: analysisResults,
+          summary: newSummary,
+          speciesBreakdown: newSpeciesBreakdown,
+        });
 
         setLoadingStatus('');
         setLoading(false);
       } catch (err) {
+        if (!mountRef.current) return;
         console.error('Error loading data:', err);
         setError(err.message);
         setLoading(false);
@@ -57,6 +104,9 @@ function App() {
     }
 
     loadData();
+    return () => {
+      mountRef.current = false;
+    };
   }, [selectedState]);
 
   // Create GeoJSON with observation counts for the map
@@ -230,9 +280,11 @@ function App() {
                           </span>
                         </td>
                         <td className="species">
-                          {result.observationsNearby.length > 0 
-                            ? [...new Set(result.observationsNearby.map(o => o.species))].join(', ')
-                            : '-'
+                          {result.speciesBreakdown?.length
+                            ? result.speciesBreakdown.map(s => s.species).join(', ')
+                            : result.observationsNearby?.length
+                              ? [...new Set(result.observationsNearby.map(o => o.species))].join(', ')
+                              : '-'
                           }
                         </td>
                       </tr>
