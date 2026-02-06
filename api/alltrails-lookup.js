@@ -54,22 +54,36 @@ export default async function handler(req, res) {
     const query = `${trailName} alltrails ${stateName}`;
     const serpUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&location=${encodeURIComponent(stateName + ', United States')}&api_key=${apiKey}`;
 
+    console.log('[AllTrails] SerpAPI request:', { trailName, state, query, location: stateName + ', United States' });
+
     const serpRes = await fetch(serpUrl);
     if (!serpRes.ok) {
-      console.error('SerpAPI error:', serpRes.status, await serpRes.text());
+      const errText = await serpRes.text();
+      console.error('[AllTrails] SerpAPI HTTP error:', serpRes.status, errText?.slice(0, 500));
       return res.status(200).json({ url: null });
     }
 
     const serp = await serpRes.json();
     const organic = serp?.organic_results || [];
-    let url = null;
+    const allLinks = organic.map((o) => o?.link || o?.displayed_link).filter(Boolean);
+    console.log('[AllTrails] SerpAPI response:', {
+      organicCount: organic.length,
+      links: allLinks.slice(0, 10),
+      firstItemKeys: organic[0] ? Object.keys(organic[0]) : [],
+    });
 
+    let url = null;
     for (const item of organic) {
       const link = item.link || '';
-      if (ALLTRAILS_TRAIL_PATTERN.test(link)) {
+      if (typeof link === 'string' && ALLTRAILS_TRAIL_PATTERN.test(link)) {
         url = link;
         break;
       }
+    }
+    if (!url) {
+      console.log('[AllTrails] No alltrails.com/trail/ link found in organic results. Pattern:', ALLTRAILS_TRAIL_PATTERN.toString());
+    } else {
+      console.log('[AllTrails] Found trail URL:', url);
     }
 
     // 3. Store result if table exists (ignore upsert errors)
