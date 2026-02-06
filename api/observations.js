@@ -16,19 +16,30 @@ export default async function handler(req, res) {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const dateStr = sevenDaysAgo.toISOString().split('T')[0];
 
-  try {
-    const { data, error } = await supabase
-      .from('observations')
-      .select('id, species, scientific_name, observed_on, quality_grade, user_login, photo_url, geojson')
-      .eq('state', state)
-      .gte('observed_on', dateStr)
-      .order('observed_on', { ascending: false });
+  const PAGE_SIZE = 500;
+  const allData = [];
+  let offset = 0;
 
-    if (error) throw error;
+  try {
+    while (true) {
+      const { data, error } = await supabase
+        .from('observations')
+        .select('id, species, scientific_name, observed_on, quality_grade, user_login, photo_url, geojson')
+        .eq('state', state)
+        .gte('observed_on', dateStr)
+        .order('observed_on', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) throw error;
+      if (!data?.length) break;
+      allData.push(...data);
+      if (data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
 
     const geojson = {
       type: 'FeatureCollection',
-      features: (data || []).map((obs) => ({
+      features: (allData || []).map((obs) => ({
         type: 'Feature',
         properties: {
           id: obs.id,

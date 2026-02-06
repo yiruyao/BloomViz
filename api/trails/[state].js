@@ -14,19 +14,31 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid state. Use ca, or, or wa.' });
   }
 
-  try {
-    const { data: rows, error } = await supabase
-      .from('trails')
-      .select('geojson')
-      .eq('state', stateLower)
-      .order('chunk_id', { ascending: true });
+  const PAGE_SIZE = 10; // avoid Supabase statement timeout (fetch in small batches)
+  const allRows = [];
+  let offset = 0;
 
-    if (error) throw error;
-    if (!rows?.length) {
+  try {
+    while (true) {
+      const { data: rows, error } = await supabase
+        .from('trails')
+        .select('geojson')
+        .eq('state', stateLower)
+        .order('chunk_id', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) throw error;
+      if (!rows?.length) break;
+      allRows.push(...rows);
+      if (rows.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    if (!allRows.length) {
       return res.status(404).json({ error: 'Trails not found for this state. Run generate-trails script first.' });
     }
 
-    const features = rows.flatMap((r) => r.geojson?.features ?? []);
+    const features = allRows.flatMap((r) => r.geojson?.features ?? []);
     const geojson = { type: 'FeatureCollection', features };
 
     res.setHeader('Cache-Control', 's-maxage=86400'); // 24h

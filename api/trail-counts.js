@@ -12,16 +12,27 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid state. Use ca, or, or wa.' });
   }
 
+  const PAGE_SIZE = 300;
+  const allData = [];
+  let offset = 0;
+
   try {
-    const { data, error } = await supabase
-      .from('trail_observation_counts')
-      .select('trail_name, observation_count, species_breakdown')
-      .eq('state', state)
-      .order('observation_count', { ascending: false });
+    while (true) {
+      const { data, error } = await supabase
+        .from('trail_observation_counts')
+        .select('trail_name, observation_count, species_breakdown')
+        .eq('state', state)
+        .order('observation_count', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
 
-    if (error) throw error;
+      if (error) throw error;
+      if (!data?.length) break;
+      allData.push(...data);
+      if (data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
 
-    const counts = (data || []).map((row) => ({
+    const counts = (allData || []).map((row) => ({
       trail_name: row.trail_name,
       observation_count: row.observation_count,
       species_breakdown: row.species_breakdown || [],
