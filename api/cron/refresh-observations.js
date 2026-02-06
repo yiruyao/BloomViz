@@ -12,7 +12,7 @@ const BATCH_SIZE = 150;
 async function fetchObservationsForPlace(placeId, d1, d2) {
   const all = [];
   let page = 1;
-  const maxPages = 50;
+  const maxPages = 10;
 
   while (page <= maxPages) {
     const params = new URLSearchParams({
@@ -89,9 +89,11 @@ export async function refreshOneState(stateCode, d1, d2) {
 }
 
 export default async function handler(req, res) {
+  console.log('refresh-observations: handler started');
   const authHeader = (req.headers && (req.headers.authorization || req.headers['authorization'])) || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   if (!token || token !== process.env.CRON_SECRET) {
+    console.log('refresh-observations: unauthorized');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

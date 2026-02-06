@@ -3,9 +3,7 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "functions": {
-    "api/**/*.js": {
-      "runtime": "@vercel/node@3"
-    }
+    "api/**/*.js": {}
   },
   "rewrites": [
     {
