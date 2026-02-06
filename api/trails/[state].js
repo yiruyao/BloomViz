@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid state. Use ca, or, or wa.' });
   }
 
-  const PAGE_SIZE = 3; // small batches to stay under Supabase statement timeout (large GeoJSON per row)
+  const PAGE_SIZE = 1; // one chunk per request to stay under Supabase statement timeout (geojson can be large)
   const allRows = [];
   let offset = 0;
 

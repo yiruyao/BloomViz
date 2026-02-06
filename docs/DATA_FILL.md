@@ -30,3 +30,5 @@ node scripts/refresh-trail-counts.js
 This fills `trail_observation_counts` so the app can skip client-side spatial analysis and load faster. Run again whenever observations are refreshed (e.g. after cron or backfill).
 
 If you see *"Could not query the database for the schema cache"*, check: project not paused, correct URL and service key in env, and that the schema has been run in SQL Editor.
+
+If the app shows *"canceling statement due to statement timeout"* when loading trails, Supabase’s default timeout may be too low. In **Supabase Dashboard → Project Settings → Database**, you can increase the statement timeout, or run in SQL Editor: `ALTER DATABASE postgres SET statement_timeout = '30s';` (then reconnect).
