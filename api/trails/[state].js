@@ -1,3 +1,7 @@
+/**
+ * Trails API: reads trail GeoJSON from Supabase only (no Overpass at runtime).
+ * Table is populated by scripts/generate-trails.js (Overpass backfill).
+ */
 import { supabase } from '../../lib/supabase.js';
 
 const VALID_STATES = ['ca', 'or', 'wa'];
