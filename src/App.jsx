@@ -62,6 +62,13 @@ function App() {
 
         if (!mountRef.current) return;
 
+        const trailFeatures = trailsData?.features ?? [];
+        if (trailFeatures.length === 0) {
+          setError('No trail data for this state. Run the fill-trails script and ensure the database is configured.');
+          setLoading(false);
+          return;
+        }
+
         setTrails(trailsData);
         setObservations(observationsData);
 
@@ -98,7 +105,7 @@ function App() {
       } catch (err) {
         if (!mountRef.current) return;
         console.error('Error loading data:', err);
-        setError(err.message);
+        setError(err?.message || String(err) || 'Failed to load data');
         setLoading(false);
       }
     }
@@ -203,6 +210,7 @@ function App() {
               observationsGeoJSON={observations}
               center={STATES[selectedState]?.center}
               zoom={STATES[selectedState]?.zoom}
+              selectedState={selectedState}
             />
             <Legend />
           </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { getAllTrailsUrl, WILDFLOWER_RESOURCES } from '../config/resources';
+import { getAllTrailsUrl } from '../config/resources';
+import { fetchAllTrailsLookup } from '../services/api';
 import ResourcesPanel from './ResourcesPanel';
 
 // You'll need to set this in your .env file as VITE_MAPBOX_TOKEN
@@ -10,7 +11,7 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = [-122.35, 37.45];
 const DEFAULT_ZOOM = 10;
 
-export default function Map({ trailsGeoJSON, observationsGeoJSON, center, zoom }) {
+export default function Map({ trailsGeoJSON, observationsGeoJSON, center, zoom, selectedState }) {
   const mapCenter = center || DEFAULT_CENTER;
   const mapZoom = zoom ?? DEFAULT_ZOOM;
   const mapContainer = useRef(null);
@@ -123,13 +124,23 @@ export default function Map({ trailsGeoJSON, observationsGeoJSON, center, zoom }
     });
 
     // Add click handler for trails
-    map.current.on('click', layerId, (e) => {
+    map.current.off('click', layerId); // remove previous handler when deps change
+    map.current.on('click', layerId, async (e) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         const props = feature.properties;
-        const allTrailsUrl = getAllTrailsUrl(props.name);
         const escapedName = props.name.replace(/'/g, "\\'");
-        
+
+        let allTrailsUrl = getAllTrailsUrl(props.name); // fallback
+        if (selectedState) {
+          try {
+            const { url } = await fetchAllTrailsLookup(props.name, selectedState);
+            if (url) allTrailsUrl = url;
+          } catch {
+            // keep fallback
+          }
+        }
+
         new mapboxgl.Popup({ maxWidth: '280px' })
           .setLngLat(e.lngLat)
           .setHTML(`
@@ -161,7 +172,7 @@ export default function Map({ trailsGeoJSON, observationsGeoJSON, center, zoom }
       map.current.getCanvas().style.cursor = '';
     });
 
-  }, [mapLoaded, trailsGeoJSON]);
+  }, [mapLoaded, trailsGeoJSON, selectedState]);
 
   // Add/update observations layer
   useEffect(() => {

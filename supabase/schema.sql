@@ -46,3 +46,15 @@ CREATE TABLE IF NOT EXISTS trail_observation_counts (
 
 CREATE INDEX IF NOT EXISTS idx_trail_observation_counts_state
   ON trail_observation_counts(state);
+
+-- AllTrails URL lookups: cache trail name → AllTrails direct link (avoids repeated SerpAPI searches)
+CREATE TABLE IF NOT EXISTS alltrails_lookups (
+  state VARCHAR(2) NOT NULL,
+  trail_name TEXT NOT NULL,
+  url TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (state, trail_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_alltrails_lookups_state
+  ON alltrails_lookups(state);
