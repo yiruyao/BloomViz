@@ -195,6 +195,15 @@ body {
   cursor: grabbing;
 }
 
+/* Force standard cursor (override Mapbox grey dot) */
+.map-container .mapboxgl-canvas {
+  cursor: grab !important;
+}
+
+.map-container .mapboxgl-canvas:active {
+  cursor: grabbing !important;
+}
+
 .map-error {
   display: flex;
   flex-direction: column;
@@ -713,6 +722,7 @@ body {
   font-size: 0.9rem;
   font-weight: 500;
   transition: background 0.2s;
+  cursor: pointer;
 }
 
 .popup-alltrails-btn:hover {
@@ -756,13 +766,13 @@ body {
   color: #334155;
 }
 
-/* Resources Panel (floating box) */
+/* Resources Panel (floating box) - top right when shown */
 .resources-panel {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  top: 20px;
+  right: 60px;
   width: 300px;
-  max-width: calc(100% - 40px);
+  max-width: calc(100% - 80px);
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -849,9 +859,9 @@ body {
 /* Responsive adjustments for resources panel */
 @media (max-width: 768px) {
   .resources-panel {
-    left: 10px;
+    top: 10px;
     right: 10px;
+    left: 10px;
     width: auto;
-    bottom: 10px;
   }
 }
