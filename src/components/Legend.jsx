@@ -37,13 +37,6 @@ export default function Legend() {
           />
           <span>Observation point</span>
         </div>
-        <div className="legend-item">
-          <span 
-            className="legend-line" 
-            style={{ background: '#9ca3af' }}
-          />
-          <span>Trail (no recent flowers)</span>
-        </div>
       </div>
     </div>
   );

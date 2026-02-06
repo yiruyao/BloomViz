@@ -162,10 +162,16 @@ export default function MapView(props) {
         const escapedName = props.name.replace(/'/g, "\\'");
 
         let allTrailsUrl = getAllTrailsUrl(props.name); // fallback
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/808de36a-461e-47a6-8668-a138c8bf4390',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Map.jsx:trail-click',message:'trail clicked',data:{trailName:props.name,selectedState,willLookup:!!selectedState},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
         if (selectedState) {
           try {
             const { url } = await fetchAllTrailsLookup(props.name, selectedState);
             if (url) allTrailsUrl = url;
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/808de36a-461e-47a6-8668-a138c8bf4390',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Map.jsx:trail-click',message:'lookup result',data:{resolvedUrl:url,usedUrl:allTrailsUrl,usedFallback:!url},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H3'})}).catch(()=>{});
+            // #endregion
           } catch {
             // keep fallback
           }
@@ -194,12 +200,12 @@ export default function MapView(props) {
       }
     });
 
-    // Change cursor on hover
+    // Change cursor on hover (pointer for clickable, grab for normal map)
     map.current.on('mouseenter', layerId, () => {
       map.current.getCanvas().style.cursor = 'pointer';
     });
     map.current.on('mouseleave', layerId, () => {
-      map.current.getCanvas().style.cursor = '';
+      map.current.getCanvas().style.cursor = 'grab';
     });
 
   }, [mapLoaded, trailsGeoJSON, selectedState]);
@@ -225,11 +231,14 @@ export default function MapView(props) {
       data: observationsGeoJSON,
     });
 
-    // Add layer
+    // Add layer (hidden by default; user can toggle via checkbox)
     map.current.addLayer({
       id: layerId,
       type: 'circle',
       source: sourceId,
+      layout: {
+        visibility: showObservations ? 'visible' : 'none',
+      },
       paint: {
         'circle-radius': 6,
         'circle-color': '#ec4899',
@@ -263,15 +272,15 @@ export default function MapView(props) {
       }
     });
 
-    // Change cursor on hover
+    // Change cursor on hover (pointer for clickable, grab for normal map)
     map.current.on('mouseenter', layerId, () => {
       map.current.getCanvas().style.cursor = 'pointer';
     });
     map.current.on('mouseleave', layerId, () => {
-      map.current.getCanvas().style.cursor = '';
+      map.current.getCanvas().style.cursor = 'grab';
     });
 
-  }, [mapLoaded, observationsGeoJSON]);
+  }, [mapLoaded, observationsGeoJSON, showObservations]);
 
   // Toggle observations visibility
   useEffect(() => {

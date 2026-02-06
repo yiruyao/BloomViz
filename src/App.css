@@ -188,6 +188,11 @@ body {
 .map-container {
   flex: 1;
   position: relative;
+  cursor: grab;
+}
+
+.map-container:active {
+  cursor: grabbing;
 }
 
 .map-error {
@@ -226,7 +231,7 @@ body {
 
 .map-controls {
   position: absolute;
-  bottom: 20px;
+  bottom: 70px;
   left: 20px;
   background: white;
   padding: 10px 14px;
@@ -629,7 +634,7 @@ body {
   }
 
   .map-controls {
-    bottom: 10px;
+    bottom: 60px;
     left: 10px;
     right: 10px;
     text-align: center;
@@ -754,7 +759,7 @@ body {
 /* Resources Panel (floating box) */
 .resources-panel {
   position: absolute;
-  bottom: 70px;
+  bottom: 20px;
   left: 20px;
   width: 300px;
   max-width: calc(100% - 40px);
@@ -847,6 +852,6 @@ body {
     left: 10px;
     right: 10px;
     width: auto;
-    bottom: 60px;
+    bottom: 10px;
   }
 }
