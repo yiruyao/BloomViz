@@ -20,20 +20,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Check cache
-    const { data: row, error: selectError } = await supabase
-      .from('alltrails_lookups')
-      .select('url')
-      .eq('state', state)
-      .eq('trail_name', trailName)
-      .maybeSingle();
+    // 1. Check cache (skip if table doesn't exist yet)
+    let cacheHit = false;
+    let cachedUrl = null;
+    try {
+      const { data: row, error: selectError } = await supabase
+        .from('alltrails_lookups')
+        .select('url')
+        .eq('state', state)
+        .eq('trail_name', trailName)
+        .maybeSingle();
 
-    if (selectError) throw selectError;
+      if (!selectError && row !== null) {
+        cacheHit = true;
+        cachedUrl = row.url;
+      }
+    } catch {
+      // Table may not exist; fall through to SerpAPI
+    }
 
-    if (row !== null) {
-      // Cache hit - return stored result (url may be null for previous failed lookups)
+    if (cacheHit) {
       res.setHeader('Cache-Control', 's-maxage=604800'); // 7 days
-      return res.status(200).json({ url: row.url });
+      return res.status(200).json({ url: cachedUrl });
     }
 
     // 2. Cache miss - call SerpAPI
@@ -44,7 +52,7 @@ export default async function handler(req, res) {
 
     const stateName = STATES[state]?.name || state;
     const query = `${trailName} alltrails ${stateName}`;
-    const serpUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${apiKey}`;
+    const serpUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&location=${encodeURIComponent(stateName + ', United States')}&api_key=${apiKey}`;
 
     const serpRes = await fetch(serpUrl);
     if (!serpRes.ok) {
@@ -64,8 +72,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Store result (url or null) so we don't search again
-    await supabase.from('alltrails_lookups').upsert(
+    // 3. Store result if table exists (ignore upsert errors)
+    const { error: upsertError } = await supabase.from('alltrails_lookups').upsert(
       {
         state,
         trail_name: trailName,
@@ -74,6 +82,7 @@ export default async function handler(req, res) {
       },
       { onConflict: 'state,trail_name' }
     );
+    if (upsertError) console.warn('alltrails_lookups upsert failed:', upsertError.message);
 
     res.setHeader('Cache-Control', 's-maxage=604800'); // 7 days
     return res.status(200).json({ url });

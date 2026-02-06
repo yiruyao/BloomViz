@@ -91,12 +91,16 @@ export async function fetchObservations(state) {
  * Uses cached DB results; only calls SerpAPI for first-time lookups.
  */
 export async function fetchAllTrailsLookup(trailName, state) {
-  const res = await fetch(
-    apiUrl(`/api/alltrails-lookup?trailName=${encodeURIComponent(trailName)}&state=${encodeURIComponent(state)}`)
-  );
-  if (!res.ok) return { url: null };
-  const data = await res.json();
-  return data;
+  try {
+    const res = await fetchWithTimeout(
+      apiUrl(`/api/alltrails-lookup?trailName=${encodeURIComponent(trailName)}&state=${encodeURIComponent(state)}`)
+    );
+    if (!res.ok) return { url: null };
+    const data = await parseJsonResponse(res);
+    return data;
+  } catch {
+    return { url: null };
+  }
 }
 
 /**
