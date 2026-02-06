@@ -11,7 +11,8 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = [-122.35, 37.45];
 const DEFAULT_ZOOM = 10;
 
-export default function Map({ trailsGeoJSON, observationsGeoJSON, center, zoom, selectedState }) {
+export default function Map(props) {
+  const { trailsGeoJSON, observationsGeoJSON, center, zoom, selectedState } = props ?? {};
   const mapCenter = center || DEFAULT_CENTER;
   const mapZoom = zoom ?? DEFAULT_ZOOM;
   const mapContainer = useRef(null);

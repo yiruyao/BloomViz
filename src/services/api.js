@@ -3,12 +3,25 @@
  * Responses are cached in memory by state to avoid refetching when switching states.
  */
 
-const getBaseUrl = () => {
-  if (import.meta.env.DEV) {
-    return ''; // Vite proxy or same origin in dev
+function getApiBaseUrl() {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
   }
-  return import.meta.env.VITE_API_BASE_URL || '';
-};
+  if (import.meta.env.DEV) {
+    return ''; // Vite dev: same origin
+  }
+  // Production: same origin so /api/* hits the same Vercel deployment
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return '';
+}
+
+function apiUrl(path) {
+  const base = getApiBaseUrl();
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return base ? `${base}${p}` : p;
+}
 
 const FETCH_TIMEOUT_MS = 60000; // 60s for serverless cold starts
 
@@ -30,7 +43,7 @@ export async function fetchTrails(state) {
   if (trailsCache.has(key)) {
     return trailsCache.get(key);
   }
-  const res = await fetchWithTimeout(`${getBaseUrl()}/api/trails/${state}`);
+  const res = await fetchWithTimeout(apiUrl(`/api/trails/${state}`));
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Trails fetch failed: ${res.status}`);
@@ -45,7 +58,7 @@ export async function fetchObservations(state) {
   if (observationsCache.has(key)) {
     return observationsCache.get(key);
   }
-  const res = await fetchWithTimeout(`${getBaseUrl()}/api/observations?state=${state}`);
+  const res = await fetchWithTimeout(apiUrl(`/api/observations?state=${state}`));
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Observations fetch failed: ${res.status}`);
@@ -61,7 +74,7 @@ export async function fetchObservations(state) {
  */
 export async function fetchAllTrailsLookup(trailName, state) {
   const res = await fetch(
-    `${getBaseUrl()}/api/alltrails-lookup?trailName=${encodeURIComponent(trailName)}&state=${encodeURIComponent(state)}`
+    apiUrl(`/api/alltrails-lookup?trailName=${encodeURIComponent(trailName)}&state=${encodeURIComponent(state)}`)
   );
   if (!res.ok) return { url: null };
   const data = await res.json();
@@ -77,7 +90,7 @@ export async function fetchTrailCounts(state) {
   if (trailCountsCache.has(key)) {
     return trailCountsCache.get(key);
   }
-  const res = await fetch(`${getBaseUrl()}/api/trail-counts?state=${state}`);
+  const res = await fetch(apiUrl(`/api/trail-counts?state=${state}`));
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Trail counts fetch failed: ${res.status}`);

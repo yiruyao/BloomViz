@@ -32,6 +32,9 @@ function App() {
 
   useEffect(() => {
     const stateKey = selectedState.toLowerCase();
+    if (typeof console !== 'undefined') {
+      console.log('[BloomScout] Loading data for state:', stateKey);
+    }
 
     // Restore from cache when switching back to a previously loaded state
     const cached = stateDataCache.get(stateKey);
