@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase.js';
-import { STATES } from '../../src/config/states.js';
+import { STATES } from '../lib/states.js';
 
 const INATURALIST_API_URL = 'https://api.inaturalist.org/v1/observations';
 
