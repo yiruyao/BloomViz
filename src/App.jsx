@@ -56,13 +56,8 @@ function App() {
         setLoading(true);
         setError(null);
 
-        setLoadingStatus(`Loading ${STATES[selectedState]?.name || selectedState}...`);
-        const [trailsData, observationsData, trailCountsData] = await Promise.all([
-          fetchTrails(selectedState),
-          fetchObservations(selectedState),
-          fetchTrailCounts(selectedState).catch(() => null),
-        ]);
-
+        setLoadingStatus('Loading trails...');
+        const trailsData = await fetchTrails(selectedState);
         if (!mountRef.current) return;
 
         const trailFeatures = trailsData?.features ?? [];
@@ -71,20 +66,27 @@ function App() {
           setLoading(false);
           return;
         }
-
         setTrails(trailsData);
-        setObservations(observationsData);
+        console.log('Trails loaded:', trailFeatures.length);
 
-        const trailCount = trailsData?.features?.length ?? 0;
+        setLoadingStatus('Loading observations...');
+        const [observationsData, trailCountsData] = await Promise.all([
+          fetchObservations(selectedState),
+          fetchTrailCounts(selectedState).catch(() => null),
+        ]);
+        if (!mountRef.current) return;
+
+        setObservations(observationsData);
         const obsCount = observationsData?.features?.length ?? 0;
-        console.log('Trails loaded:', trailCount, 'Observations loaded:', obsCount);
+        console.log('Observations loaded:', obsCount);
 
         let analysisResults;
         if (Array.isArray(trailCountsData) && trailCountsData.length > 0) {
+          setLoadingStatus('Applying counts...');
           analysisResults = buildResultsFromCounts(trailsData, trailCountsData);
           console.log('Using precomputed trail counts');
         } else {
-          setLoadingStatus('Performing spatial analysis...');
+          setLoadingStatus('Analyzing...');
           analysisResults = calculateTrailDensity(trailsData, observationsData);
         }
         setResults(analysisResults);
@@ -135,21 +137,6 @@ function App() {
     };
   }, [results]);
 
-  if (loading) {
-    return (
-      <div className="app">
-        <header className="header">
-          <h1>BloomScout</h1>
-          <p>Wildflower Trail Finder</p>
-        </header>
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>{loadingStatus || 'Loading...'}</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="app">
@@ -174,6 +161,11 @@ function App() {
           <p>Wildflower Trail Finder – {STATES[selectedState]?.name ?? selectedState}</p>
         </div>
         <div className="header-actions">
+          {loading && (
+            <span className="header-loading" aria-live="polite">
+              {loadingStatus || 'Loading…'}
+            </span>
+          )}
           <StateSelector
             value={selectedState}
             onChange={setSelectedState}
@@ -208,8 +200,14 @@ function App() {
         {/* Map View */}
         {activeTab === 'map' && (
           <div className="map-view">
+            {loading && (
+              <div className="map-loading-overlay" aria-hidden>
+                <span className="map-loading-text">{loadingStatus || 'Loading trails…'}</span>
+              </div>
+            )}
             <MapView
               trailsGeoJSON={trailsWithCounts}
+              trailsRaw={trails}
               observationsGeoJSON={observations}
               center={STATES[selectedState]?.center}
               zoom={STATES[selectedState]?.zoom}

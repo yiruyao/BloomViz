@@ -70,22 +70,50 @@ export default function MapView(props) {
     }
   }, [mapLoaded, mapCenter, mapZoom]);
 
-  // Add/update trails layer
+  // Raw trails (gray) – show while loading before counts are ready
   useEffect(() => {
-    if (!map.current || !mapLoaded || !trailsGeoJSON) return;
+    if (!map.current || !mapLoaded) return;
+    const rawSourceId = 'trails-raw-source';
+    const rawLayerId = 'trails-raw-layer';
+
+    if (showStyledTrails || !trailsRaw?.features?.length) {
+      if (map.current.getLayer(rawLayerId)) map.current.removeLayer(rawLayerId);
+      if (map.current.getSource(rawSourceId)) map.current.removeSource(rawSourceId);
+      return;
+    }
+
+    if (map.current.getLayer(rawLayerId)) map.current.removeLayer(rawLayerId);
+    if (map.current.getSource(rawSourceId)) map.current.removeSource(rawSourceId);
+    map.current.addSource(rawSourceId, { type: 'geojson', data: trailsRaw });
+    map.current.addLayer({
+      id: rawLayerId,
+      type: 'line',
+      source: rawSourceId,
+      paint: {
+        'line-color': '#94a3b8',
+        'line-width': 2,
+        'line-opacity': 0.7,
+      },
+    });
+  }, [mapLoaded, trailsRaw, showStyledTrails]);
+
+  // Styled trails (by observation count) – when analysis is ready
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !trailsGeoJSON) {
+      return;
+    }
 
     const sourceId = 'trails-source';
     const layerId = 'trails-layer';
+    const rawLayerId = 'trails-raw-layer';
+    const rawSourceId = 'trails-raw-source';
 
-    // Remove existing layer and source if they exist
-    if (map.current.getLayer(layerId)) {
-      map.current.removeLayer(layerId);
-    }
-    if (map.current.getSource(sourceId)) {
-      map.current.removeSource(sourceId);
-    }
+    if (map.current.getLayer(rawLayerId)) map.current.removeLayer(rawLayerId);
+    if (map.current.getSource(rawSourceId)) map.current.removeSource(rawSourceId);
 
-    // Add source
+    if (map.current.getLayer(layerId)) map.current.removeLayer(layerId);
+    if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+
     map.current.addSource(sourceId, {
       type: 'geojson',
       data: trailsGeoJSON,
