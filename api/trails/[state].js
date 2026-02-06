@@ -18,11 +18,31 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid state. Use ca, or, or wa.' });
   }
 
-  const PAGE_SIZE = 1; // one chunk per request to stay under Supabase statement timeout (geojson can be large)
-  const allRows = [];
-  let offset = 0;
-
   try {
+    // Only include trails that have observations (trail_observation_counts); reduces payload and we don't show zero-observation trails
+    let trailNamesWithObservations = null;
+    const countPageSize = 500;
+    let countOffset = 0;
+    const namesSet = new Set();
+    while (true) {
+      const { data: countRows, error: countError } = await supabase
+        .from('trail_observation_counts')
+        .select('trail_name')
+        .eq('state', stateLower)
+        .gt('observation_count', 0)
+        .range(countOffset, countOffset + countPageSize - 1);
+      if (countError) break; // table missing or error: fall back to returning all trails
+      if (!countRows?.length) break;
+      countRows.forEach((r) => namesSet.add(r.trail_name));
+      if (countRows.length < countPageSize) break;
+      countOffset += countPageSize;
+    }
+    if (namesSet.size > 0) trailNamesWithObservations = namesSet;
+
+    const PAGE_SIZE = 1; // one chunk per request to stay under Supabase statement timeout (geojson can be large)
+    const allRows = [];
+    let offset = 0;
+
     while (true) {
       const { data: rows, error } = await supabase
         .from('trails')
@@ -42,7 +62,10 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Trails not found for this state. Run generate-trails script first.' });
     }
 
-    const features = allRows.flatMap((r) => r.geojson?.features ?? []);
+    let features = allRows.flatMap((r) => r.geojson?.features ?? []);
+    if (trailNamesWithObservations) {
+      features = features.filter((f) => trailNamesWithObservations.has(f.properties?.name));
+    }
     const geojson = { type: 'FeatureCollection', features };
 
     res.setHeader('Cache-Control', 's-maxage=86400'); // 24h
