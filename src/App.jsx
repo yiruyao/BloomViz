@@ -110,7 +110,9 @@ function App() {
       } catch (err) {
         if (!mountRef.current) return;
         console.error('Error loading data:', err);
-        setError(err?.message || String(err) || 'Failed to load data');
+        const msg = err?.message || String(err);
+        const isAbort = err?.name === 'AbortError' || /aborted|signal is aborted/i.test(msg);
+        setError(isAbort ? 'Request timed out while loading trails. Please try again.' : msg || 'Failed to load data');
         setLoading(false);
       }
     }

@@ -23,11 +23,12 @@ function apiUrl(path) {
   return base ? `${base}${p}` : p;
 }
 
-const FETCH_TIMEOUT_MS = 60000; // 60s for serverless cold starts
+const DEFAULT_FETCH_TIMEOUT_MS = 60000; // 60s
+const TRAILS_FETCH_TIMEOUT_MS = 120000; // 2 min – trails API does many paginated DB requests
 
-function fetchWithTimeout(url, options = {}) {
+function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal }).finally(() =>
     clearTimeout(timeoutId)
   );
@@ -61,7 +62,7 @@ export async function fetchTrails(state) {
   if (trailsCache.has(key)) {
     return trailsCache.get(key);
   }
-  const res = await fetchWithTimeout(apiUrl(`/api/trails/${state}`));
+  const res = await fetchWithTimeout(apiUrl(`/api/trails/${state}`), {}, TRAILS_FETCH_TIMEOUT_MS);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Trails fetch failed: ${res.status}`);
