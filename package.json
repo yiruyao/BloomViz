@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fill-observations": "node scripts/backfill-observations.js --days=7",
+    "fill-trails": "node scripts/generate-trails.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.2",

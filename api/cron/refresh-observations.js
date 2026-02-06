@@ -12,7 +12,7 @@ const BATCH_SIZE = 150;
 async function fetchObservationsForPlace(placeId, d1, d2) {
   const all = [];
   let page = 1;
-  const maxPages = 10;
+  const maxPages = 4;
 
   while (page <= maxPages) {
     const params = new URLSearchParams({
@@ -70,17 +70,38 @@ async function upsertBatched(rows) {
   }
 }
 
+/** Delete only the single day that just left the 7-day window (since we run daily). One delete per state, minimal I/O. */
+async function deleteOldObservationsChunked(stateCode, d1) {
+  const d1Date = new Date(d1 + 'T00:00:00Z');
+  d1Date.setUTCDate(d1Date.getUTCDate() - 1);
+  const dateToDelete = formatDate(d1Date);
+  const { error } = await supabase
+    .from('observations')
+    .delete()
+    .eq('state', stateCode)
+    .eq('observed_on', dateToDelete);
+  if (error) throw error;
+}
+
+/** Upsert-only: no delete. Use for backfilling a date range without wiping older data. */
+export async function backfillOneState(stateCode, d1, d2) {
+  const config = STATES[stateCode];
+  if (!config) throw new Error(`Unknown state: ${stateCode}`);
+
+  const observations = await fetchObservationsForPlace(config.iNaturalistPlaceId, d1, d2);
+  const rows = toRows(observations, stateCode);
+  if (rows.length > 0) await upsertBatched(rows);
+
+  return { count: rows.length };
+}
+
 export async function refreshOneState(stateCode, d1, d2) {
   const config = STATES[stateCode];
   if (!config) throw new Error(`Unknown state: ${stateCode}`);
 
   const observations = await fetchObservationsForPlace(config.iNaturalistPlaceId, d1, d2);
 
-  await supabase
-    .from('observations')
-    .delete()
-    .lt('observed_on', d1)
-    .eq('state', stateCode);
+  await deleteOldObservationsChunked(stateCode, d1);
 
   const rows = toRows(observations, stateCode);
   if (rows.length > 0) await upsertBatched(rows);
@@ -89,11 +110,9 @@ export async function refreshOneState(stateCode, d1, d2) {
 }
 
 export default async function handler(req, res) {
-  console.log('refresh-observations: handler started');
   const authHeader = (req.headers && (req.headers.authorization || req.headers['authorization'])) || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   if (!token || token !== process.env.CRON_SECRET) {
-    console.log('refresh-observations: unauthorized');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

@@ -15,21 +15,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data: rows, error } = await supabase
       .from('trails')
       .select('geojson')
       .eq('state', stateLower)
-      .single();
+      .order('chunk_id', { ascending: true });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Trails not found for this state. Run generate-trails script first.' });
-      }
-      throw error;
+    if (error) throw error;
+    if (!rows?.length) {
+      return res.status(404).json({ error: 'Trails not found for this state. Run generate-trails script first.' });
     }
 
+    const features = rows.flatMap((r) => r.geojson?.features ?? []);
+    const geojson = { type: 'FeatureCollection', features };
+
     res.setHeader('Cache-Control', 's-maxage=86400'); // 24h
-    return res.status(200).json(data.geojson);
+    return res.status(200).json(geojson);
   } catch (err) {
     console.error('Trails API error:', err);
     return res.status(500).json({ error: err.message });

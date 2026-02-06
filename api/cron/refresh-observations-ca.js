@@ -5,7 +5,6 @@ function formatDate(d) {
 }
 
 export default async function handler(req, res) {
-  console.log('refresh-observations-ca: handler started');
   const authHeader = (req.headers && (req.headers.authorization || req.headers['authorization'])) || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   if (!token || token !== process.env.CRON_SECRET) {

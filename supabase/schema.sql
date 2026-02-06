@@ -1,10 +1,17 @@
 -- Run this in Supabase SQL Editor to create tables for BloomScout
 
--- Trails: one row per state, GeoJSON stored as JSONB
+-- Trails: one row per (state, chunk_id) so backfill can write in small chunks and avoid DB overload.
+-- If you already have the old single-row-per-state table, run this migration first:
+--   ALTER TABLE trails ADD COLUMN IF NOT EXISTS chunk_id INT NOT NULL DEFAULT 0;
+--   ALTER TABLE trails DROP CONSTRAINT IF EXISTS trails_pkey;
+--   ALTER TABLE trails ADD PRIMARY KEY (state, chunk_id);
+-- Then re-run the backfill (generate-trails.js) to populate chunked rows.
 CREATE TABLE IF NOT EXISTS trails (
-  state VARCHAR(2) PRIMARY KEY,
+  state VARCHAR(2) NOT NULL,
+  chunk_id INT NOT NULL DEFAULT 0,
   geojson JSONB NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (state, chunk_id)
 );
 
 -- Observations: one row per observation, 7-day rolling window per state
