@@ -33,6 +33,24 @@ function fetchWithTimeout(url, options = {}) {
   );
 }
 
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  const trimmed = text.trim();
+  if (trimmed.startsWith('<') || trimmed.startsWith('import ')) {
+    throw new Error(
+      'API returned non-JSON (HTML or JS). In local dev, /api routes are not available. ' +
+      'Use "vercel dev" to run API + app, or set VITE_API_BASE_URL to your deployed app URL in .env.local.'
+    );
+  }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error(
+      'API returned invalid JSON. In local dev, use "vercel dev" or set VITE_API_BASE_URL to your deployed app URL in .env.local.'
+    );
+  }
+}
+
 // In-memory cache: state -> parsed response (persists for session)
 const trailsCache = new Map();
 const observationsCache = new Map();
@@ -48,7 +66,7 @@ export async function fetchTrails(state) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Trails fetch failed: ${res.status}`);
   }
-  const data = await res.json();
+  const data = await parseJsonResponse(res);
   trailsCache.set(key, data);
   return data;
 }
@@ -63,7 +81,7 @@ export async function fetchObservations(state) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Observations fetch failed: ${res.status}`);
   }
-  const data = await res.json();
+  const data = await parseJsonResponse(res);
   observationsCache.set(key, data);
   return data;
 }
@@ -95,7 +113,7 @@ export async function fetchTrailCounts(state) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Trail counts fetch failed: ${res.status}`);
   }
-  const data = await res.json();
+  const data = await parseJsonResponse(res);
   trailCountsCache.set(key, data);
   return data;
 }

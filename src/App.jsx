@@ -7,7 +7,7 @@ import {
   getSpeciesBreakdown,
 } from './utils/spatialAnalysis';
 import { STATES } from './config/states';
-import Map from './components/Map';
+import MapView from './components/Map';
 import Legend from './components/Legend';
 import StateSelector from './components/StateSelector';
 import './App.css';
@@ -208,8 +208,8 @@ function App() {
         {/* Map View */}
         {activeTab === 'map' && (
           <div className="map-view">
-            <Map 
-              trailsGeoJSON={trailsWithCounts} 
+            <MapView
+              trailsGeoJSON={trailsWithCounts}
               observationsGeoJSON={observations}
               center={STATES[selectedState]?.center}
               zoom={STATES[selectedState]?.zoom}
