@@ -12,9 +12,10 @@ const DEFAULT_CENTER = [-122.35, 37.45];
 const DEFAULT_ZOOM = 10;
 
 export default function MapView(props) {
-  const { trailsGeoJSON, observationsGeoJSON, center, zoom, selectedState } = props ?? {};
+  const { trailsGeoJSON, trailsRaw, observationsGeoJSON, center, zoom, selectedState } = props ?? {};
   const mapCenter = center || DEFAULT_CENTER;
   const mapZoom = zoom ?? DEFAULT_ZOOM;
+  const showStyledTrails = Boolean(trailsGeoJSON?.features?.length);
   const mapContainer = useRef(null);
   const map = useRef(null);
   const [showObservations, setShowObservations] = useState(false);
