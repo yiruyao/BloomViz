@@ -21,13 +21,39 @@ const STATE_NAMES = {
   wa: 'Washington',
 };
 
+/** Round coordinates to 5 decimals to reduce payload size and avoid 504 on large states */
+function roundCoord(c) {
+  return typeof c === 'number' ? Math.round(c * 1e5) / 1e5 : c;
+}
+
+function roundCoords(coords) {
+  if (Array.isArray(coords[0])) return coords.map(roundCoords);
+  return coords.map(roundCoord);
+}
+
+/** Shrink GeoJSON to avoid Supabase 504: round coords, strip heavy properties */
+function shrinkGeojson(geojson) {
+  const features = (geojson?.features ?? []).map((f) => {
+    const props = { name: f.properties?.name };
+    if (f.properties?.highway) props.highway = f.properties.highway;
+    let geom = f.geometry;
+    if (geom?.coordinates) {
+      geom = { ...geom, coordinates: roundCoords(geom.coordinates) };
+    }
+    return { type: 'Feature', properties: props, geometry: geom };
+  });
+  return { type: 'FeatureCollection', features };
+}
+
 async function main() {
   for (const [stateCode, name] of Object.entries(STATE_NAMES)) {
     console.log(`Fetching trails for ${name}...`);
     try {
-      const geojson = await fetchTrailsForState(name);
-      const count = geojson?.features?.length ?? 0;
-      console.log(`  ${count} trail features`);
+      const raw = await fetchTrailsForState(name);
+      const count = raw?.features?.length ?? 0;
+      console.log(`  ${count} trail features, compressing...`);
+
+      const geojson = shrinkGeojson(raw);
 
       const { error } = await supabase
         .from('trails')

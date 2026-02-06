@@ -1,8 +1,7 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/refresh-observations",
-      "schedule": "0 6 * * *"
-    }
+    { "path": "/api/cron/refresh-observations-ca", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/refresh-observations-or", "schedule": "2 6 * * *" },
+    { "path": "/api/cron/refresh-observations-wa", "schedule": "4 6 * * *" }
   ]
 }
