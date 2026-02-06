@@ -11,6 +11,7 @@ export default async function handler(req, res) {
 
   const trailName = req.query.trailName?.trim();
   const state = req.query.state?.toLowerCase();
+  console.log('[AllTrails] Handler invoked:', { trailName, state });
 
   if (!trailName) {
     return res.status(400).json({ error: 'Missing trailName' });
@@ -40,6 +41,7 @@ export default async function handler(req, res) {
     }
 
     if (cacheHit) {
+      console.log('[AllTrails] Cache hit, returning:', { cachedUrl });
       res.setHeader('Cache-Control', 's-maxage=604800'); // 7 days
       return res.status(200).json({ url: cachedUrl });
     }
@@ -47,6 +49,7 @@ export default async function handler(req, res) {
     // 2. Cache miss - call SerpAPI
     const apiKey = process.env.SERPAPI_KEY;
     if (!apiKey) {
+      console.log('[AllTrails] No SERPAPI_KEY, returning null');
       return res.status(200).json({ url: null });
     }
 

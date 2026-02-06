@@ -195,19 +195,18 @@ body {
   cursor: grabbing;
 }
 
-/* Force standard cursor (override Mapbox grey dot / custom cursor) */
-.map-container .mapboxgl-canvas,
-.map-container .mapboxgl-canvas-container {
+/* Force system cursor only – no custom/grey dot (override Mapbox) */
+.map-container .mapboxgl-map,
+.map-container .mapboxgl-canvas-container,
+.map-container .mapboxgl-canvas {
   cursor: grab !important;
 }
-
-.map-container .mapboxgl-canvas:active,
-.map-container .mapboxgl-canvas-container:active {
+.map-container .mapboxgl-canvas-container:active,
+.map-container .mapboxgl-canvas:active {
   cursor: grabbing !important;
 }
-
-/* When hovering clickable features, Map.jsx sets pointer on canvas; ensure container matches */
-.map-container .mapboxgl-canvas-container.mapboxgl-track-pointer {
+.map-container .mapboxgl-canvas-container.mapboxgl-track-pointer,
+.map-container .mapboxgl-canvas-container.mapboxgl-track-pointer .mapboxgl-canvas {
   cursor: pointer !important;
 }
 

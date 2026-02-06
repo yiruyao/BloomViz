@@ -53,6 +53,23 @@ export default function MapView(props) {
 
     map.current.on('load', () => {
       setMapLoaded(true);
+      // Force system cursor (grab) so Mapbox doesn't show its default grey dot
+      const canvas = map.current.getCanvas();
+      const container = map.current.getContainer();
+      const canvasContainer = container?.querySelector('.mapboxgl-canvas-container');
+      const setCursor = (value) => {
+        if (canvas) {
+          canvas.style.cursor = value;
+          canvas.style.setProperty('cursor', value, 'important');
+        }
+        if (canvasContainer) {
+          canvasContainer.style.cursor = value;
+          canvasContainer.style.setProperty('cursor', value, 'important');
+        }
+      };
+      setCursor('grab');
+      map.current.on('dragstart', () => setCursor('grabbing'));
+      map.current.on('dragend', () => setCursor('grab'));
     });
 
     // Cleanup
