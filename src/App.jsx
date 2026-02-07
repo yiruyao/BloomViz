@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import * as Tabs from '@radix-ui/react-tabs';
 import { fetchTrails, fetchObservations, fetchTrailCounts, fetchTrailList } from './services/api';
 import {
   calculateTrailDensity,
@@ -7,6 +8,7 @@ import {
   getSpeciesBreakdown,
 } from './utils/spatialAnalysis';
 import { STATES } from './config/states';
+import { getAllTrailsUrl, getINaturalistSpeciesUrl } from './config/resources';
 import MapView from './components/Map';
 import Legend from './components/Legend';
 import StateSelector from './components/StateSelector';
@@ -169,7 +171,7 @@ function App() {
     return (
       <div className="app">
         <header className="header">
-          <h1 className="app-title">Bloom Scout</h1>
+          <h1 className="app-title">Bloom Map</h1>
           <p>Wildflower Trail Finder</p>
         </header>
         <div className="error">
@@ -185,7 +187,7 @@ function App() {
     <div className="app app-with-map">
       <header className="header compact">
         <div className="header-content">
-          <h1 className="app-title">Bloom Scout</h1>
+          <h1 className="app-title">Bloom Map</h1>
           <p>Wildflower Trail Finder</p>
         </div>
         <div className="header-actions">
@@ -213,25 +215,19 @@ function App() {
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="tab-nav">
-        <button 
-          className={`tab-btn ${activeTab === 'map' ? 'active' : ''}`}
-          onClick={() => setActiveTab('map')}
-        >
-          Map View
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'table' ? 'active' : ''}`}
-          onClick={() => setActiveTab('table')}
-        >
-          Trail List
-        </button>
-      </div>
+      {/* Tab Navigation – Radix UI */}
+      <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="tabs-root">
+        <Tabs.List className="tab-nav">
+          <Tabs.Trigger className="tab-btn" value="map">
+            Map View
+          </Tabs.Trigger>
+          <Tabs.Trigger className="tab-btn" value="table">
+            Insights
+          </Tabs.Trigger>
+        </Tabs.List>
 
-      <main className="main-content">
-        {/* Map View */}
-        {activeTab === 'map' && (
+        <main className="main-content">
+          <Tabs.Content value="map" className="tab-content tab-content-map">
           <div className="map-view">
             {mapError && (
               <div className="map-error-overlay">
@@ -259,10 +255,9 @@ function App() {
               onShowObservationsChange={setShowObservations}
             />
           </div>
-        )}
+          </Tabs.Content>
 
-        {/* Trail List View – data from optimized /api/trail-list */}
-        {activeTab === 'table' && (
+          <Tabs.Content value="table" className="tab-content">
           <div className="table-view trail-list-overhaul">
             {listLoading ? (
               <div className="trail-list-loading">
@@ -281,18 +276,33 @@ function App() {
                         <li key={t.trail_name} className="top-trail-card">
                           <span className="top-trail-rank">{index + 1}</span>
                           <div className="top-trail-body">
-                            <span className="top-trail-name">{t.trail_name}</span>
-                            <div className="top-trail-meta">
-                              <span className={`top-trail-count count-${getCountClass(t.observation_count)}`}>
-                                {t.observation_count} {t.observation_count === 1 ? 'sighting' : 'sightings'}
-                              </span>
-                              {Array.isArray(t.species_breakdown) && t.species_breakdown.length > 0 && (
-                                <span className="top-trail-species">
-                                  {t.species_breakdown.slice(0, 3).map((s) => s?.species ?? 'Unknown').join(', ')}
-                                </span>
-                              )}
-                            </div>
+                            <a
+                              href={getAllTrailsUrl(t.trail_name, STATES[selectedState]?.name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="top-trail-name"
+                            >
+                              {t.trail_name}
+                            </a>
+                            {Array.isArray(t.species_breakdown) && t.species_breakdown.length > 0 && (
+                              <div className="top-trail-species">
+                                {t.species_breakdown.slice(0, 3).map((s, i) => (
+                                  <a
+                                    key={`${s?.species ?? 'unknown'}-${i}`}
+                                    href={getINaturalistSpeciesUrl(s?.taxon_id, s?.species)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="top-trail-species-link"
+                                  >
+                                    {s?.species ?? 'Unknown'}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
                           </div>
+                          <span className="top-trail-count">
+                            {t.observation_count} {t.observation_count === 1 ? 'sighting' : 'sightings'}
+                          </span>
                         </li>
                       ))}
                     </ol>
@@ -308,10 +318,17 @@ function App() {
                   </p>
                   {trailListData?.topSpecies?.length > 0 ? (
                     <ul className="top-species-list">
-                      {trailListData.topSpecies.map(({ species, count }, index) => (
+                      {trailListData.topSpecies.map(({ species, count, taxon_id }, index) => (
                         <li key={species} className="top-species-item">
                           <span className="top-species-rank">{index + 1}</span>
-                          <span className="top-species-name">{species}</span>
+                          <a
+                            href={getINaturalistSpeciesUrl(taxon_id, species)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="top-species-name"
+                          >
+                            {species}
+                          </a>
                           <span className="top-species-count">{count} {count === 1 ? 'sighting' : 'sightings'}</span>
                         </li>
                       ))}
@@ -323,8 +340,9 @@ function App() {
               </>
             )}
           </div>
-        )}
-      </main>
+          </Tabs.Content>
+        </main>
+      </Tabs.Root>
 
       <footer className="footer">
         <p>
@@ -335,17 +353,6 @@ function App() {
       </footer>
     </div>
   );
-}
-
-/**
- * Get CSS class based on observation count for color coding
- */
-function getCountClass(count) {
-  if (count === 0) return 'zero';
-  if (count <= 2) return 'low';
-  if (count <= 5) return 'medium';
-  if (count <= 10) return 'high';
-  return 'very-high';
 }
 
 export default App;

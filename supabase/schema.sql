@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS observations (
   state VARCHAR(2) NOT NULL,
   species VARCHAR(255),
   scientific_name VARCHAR(255),
+  taxon_id INTEGER,
   observed_on DATE,
   quality_grade VARCHAR(50),
   user_login VARCHAR(100),

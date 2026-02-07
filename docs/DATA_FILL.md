@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. **Create tables** – In [Supabase](https://supabase.com/dashboard) → your project → **SQL Editor**, run the contents of `supabase/schema.sql` (creates `trails`, `observations`, and `trail_observation_counts`).
+1. **Create tables** – In [Supabase](https://supabase.com/dashboard) → your project → **SQL Editor**, run the contents of `supabase/schema.sql` (creates `trails`, `observations`, and `trail_observation_counts`). If you have an existing `observations` table without `taxon_id`, run `supabase/migrations/001_add_taxon_id.sql` to add it for species links.
 2. **Project running** – If the project is paused, use **Restore project** in the dashboard.
 3. **Env** – In project root, `.env` or `.env.local` must have:
    - `SUPABASE_URL` (e.g. `https://xxxx.supabase.co`)

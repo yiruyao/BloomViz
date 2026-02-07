@@ -27,12 +27,20 @@ function getSupabase() {
 }
 
 function speciesBreakdownForTrail(observationsNearby) {
-  const counts = new Map();
+  const counts = new Map(); // species -> { count, taxon_id }
   for (const o of observationsNearby || []) {
     const s = o.species || 'Unknown';
-    counts.set(s, (counts.get(s) || 0) + 1);
+    const existing = counts.get(s) || { count: 0, taxon_id: null };
+    counts.set(s, {
+      count: existing.count + 1,
+      taxon_id: existing.taxon_id ?? o.taxonId ?? null,
+    });
   }
-  return Array.from(counts.entries()).map(([species, count]) => ({ species, count }));
+  return Array.from(counts.entries()).map(([species, { count, taxon_id }]) => ({
+    species,
+    count,
+    taxon_id: taxon_id || undefined,
+  }));
 }
 
 const TRAILS_PAGE = 10;   // trail chunks per request (avoids statement timeout)
@@ -69,7 +77,7 @@ async function getObservationsGeoJSON(supabase, state) {
   while (true) {
     const { data, error } = await supabase
       .from('observations')
-      .select('id, species, scientific_name, observed_on, quality_grade, user_login, photo_url, geojson')
+      .select('id, species, scientific_name, taxon_id, observed_on, quality_grade, user_login, photo_url, geojson')
       .eq('state', state)
       .gte('observed_on', dateStr)
       .order('observed_on', { ascending: false })
@@ -87,6 +95,7 @@ async function getObservationsGeoJSON(supabase, state) {
       id: obs.id,
       species: obs.species,
       scientificName: obs.scientific_name,
+      taxonId: obs.taxon_id,
       observedOn: obs.observed_on,
       qualityGrade: obs.quality_grade,
       userId: obs.user_login,

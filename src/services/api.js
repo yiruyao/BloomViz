@@ -132,10 +132,12 @@ const trailListCache = new Map();
  */
 export async function fetchTrailList(state) {
   const key = state.toLowerCase();
-  if (trailListCache.has(key)) {
+  const skipCache = import.meta.env.DEV;
+  if (!skipCache && trailListCache.has(key)) {
     return trailListCache.get(key);
   }
-  const res = await fetchWithTimeout(apiUrl(`/api/trail-list?state=${state}`));
+  const cacheBust = skipCache ? `&_=${Date.now()}` : '';
+  const res = await fetchWithTimeout(apiUrl(`/api/trail-list?state=${state}${cacheBust}`));
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Trail list fetch failed: ${res.status}`);

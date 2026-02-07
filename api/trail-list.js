@@ -8,6 +8,56 @@ const VALID_STATES = ['ca', 'or', 'wa'];
 const TOP_TRAILS_LIMIT = 10;
 const TOP_SPECIES_LIMIT = 10;
 
+/** Fetch iNaturalist taxon_id for a species name (fallback when DB lacks it) */
+async function fetchTaxonIdForSpecies(speciesName) {
+  if (!speciesName || speciesName === 'Unknown') return null;
+  try {
+    const res = await fetch(
+      `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(speciesName)}&per_page=1`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const taxon = data.results?.[0];
+    return taxon?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Enrich species with taxon_id by looking up missing ones in iNaturalist */
+async function enrichWithTaxonIds(topTrails, topSpecies) {
+  const missing = new Set();
+  for (const item of topSpecies) {
+    if (!item.taxon_id && item.species) missing.add(item.species);
+  }
+  for (const trail of topTrails) {
+    for (const s of trail.species_breakdown || []) {
+      if (!s.taxon_id && s.species) missing.add(s.species);
+    }
+  }
+  if (missing.size === 0) return;
+  const lookup = await Promise.all(
+    Array.from(missing).map(async (name) => {
+      const id = await fetchTaxonIdForSpecies(name);
+      return [name, id];
+    })
+  );
+  const taxonMap = Object.fromEntries(lookup.filter(([, id]) => id != null));
+
+  for (const item of topSpecies) {
+    if (!item.taxon_id && taxonMap[item.species]) {
+      item.taxon_id = taxonMap[item.species];
+    }
+  }
+  for (const trail of topTrails) {
+    for (const s of trail.species_breakdown || []) {
+      if (!s.taxon_id && taxonMap[s.species]) {
+        s.taxon_id = taxonMap[s.species];
+      }
+    }
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -36,7 +86,7 @@ export default async function handler(req, res) {
     }));
 
     // 2) All rows for this state (only species_breakdown + observation_count) to aggregate top species and summary
-    const speciesCounts = new Map();
+    const speciesCounts = new Map(); // species -> { count, taxon_id }
     let totalObservations = 0;
     let trailsWithObservations = 0;
     const PAGE_SIZE = 500;
@@ -59,7 +109,13 @@ export default async function handler(req, res) {
         const breakdown = Array.isArray(row.species_breakdown) ? row.species_breakdown : [];
         for (const item of breakdown) {
           const name = item?.species || 'Unknown';
-          speciesCounts.set(name, (speciesCounts.get(name) || 0) + (item?.count ?? 1));
+          const addCount = item?.count ?? 1;
+          const taxonId = item?.taxon_id ?? null;
+          const existing = speciesCounts.get(name) || { count: 0, taxon_id: null };
+          speciesCounts.set(name, {
+            count: existing.count + addCount,
+            taxon_id: existing.taxon_id ?? taxonId,
+          });
         }
       }
       if (rows.length < PAGE_SIZE) break;
@@ -67,7 +123,7 @@ export default async function handler(req, res) {
     }
 
     const topSpecies = Array.from(speciesCounts.entries())
-      .map(([species, count]) => ({ species, count }))
+      .map(([species, { count, taxon_id }]) => ({ species, count, taxon_id: taxon_id || undefined }))
       .sort((a, b) => b.count - a.count)
       .slice(0, TOP_SPECIES_LIMIT);
 
@@ -75,6 +131,9 @@ export default async function handler(req, res) {
       trailsWithObservations,
       totalObservations,
     };
+
+    // Enrich with taxon_id from iNaturalist when missing (e.g. before observations backfill)
+    await enrichWithTaxonIds(topTrails, topSpecies);
 
     res.setHeader('Cache-Control', 's-maxage=86400'); // 24h
     return res.status(200).json({ topTrails, topSpecies, summary });

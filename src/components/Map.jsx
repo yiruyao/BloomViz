@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { getAllTrailsUrl } from '../config/resources';
-import { fetchAllTrailsLookup } from '../services/api';
+import { STATES } from '../config/states';
 import ResourcesPanel from './ResourcesPanel';
 
 // You'll need to set this in your .env file as VITE_MAPBOX_TOKEN
@@ -46,9 +46,11 @@ export default function MapView(props) {
       style: 'mapbox://styles/mapbox/outdoors-v12',
       center: mapCenter,
       zoom: mapZoom,
+      attributionControl: false,
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.current.addControl(new mapboxgl.AttributionControl(), 'bottom-right');
 
     map.current.on('load', () => {
       setMapLoaded(true);
@@ -171,21 +173,15 @@ export default function MapView(props) {
 
     // Add click handler for trails
     map.current.off('click', layerId); // remove previous handler when deps change
-    map.current.on('click', layerId, async (e) => {
+    map.current.on('click', layerId, (e) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         const props = feature.properties;
         const escapedName = props.name.replace(/'/g, "\\'");
 
-        let allTrailsUrl = getAllTrailsUrl(props.name); // fallback
-        if (selectedState) {
-          try {
-            const { url } = await fetchAllTrailsLookup(props.name, selectedState);
-            if (url) allTrailsUrl = url;
-          } catch {
-            // keep fallback
-          }
-        }
+        // Use AllTrails search URL only (no API lookup). Direct trail URLs from SerpAPI
+        // can trigger AllTrails' bot detection and IP blocks even with few opens.
+        const allTrailsUrl = getAllTrailsUrl(props.name, STATES[selectedState]?.name);
 
         new mapboxgl.Popup({ maxWidth: '280px' })
           .setLngLat(e.lngLat)
@@ -268,18 +264,18 @@ export default function MapView(props) {
         const props = e.features[0].properties;
         
         let html = `
-          <div style="font-family: sans-serif; max-width: 200px;">
-            <strong>${props.species}</strong>
-            <p style="margin: 4px 0 0; color: #666; font-size: 0.9em;">${props.observedOn}</p>
+          <div class="observation-popup" style="font-family: sans-serif; max-width: 240px; padding: 12px;">
+            <strong style="display: block;">${props.species}</strong>
+            <p style="margin: 4px 0 0; color: #6b7280; font-size: 0.85em;">${props.observedOn}</p>
         `;
         
         if (props.photoUrl) {
-          html += `<img src="${props.photoUrl}" alt="${props.species}" style="max-width: 100%; margin-top: 8px; border-radius: 4px;" />`;
+          html += `<img src="${props.photoUrl}" alt="${props.species}" style="max-width: 100%; max-height: 180px; margin-top: 10px; border-radius: 6px; display: block;" />`;
         }
         
         html += '</div>';
         
-        new mapboxgl.Popup()
+        new mapboxgl.Popup({ maxWidth: '260px', anchor: 'bottom' })
           .setLngLat(e.lngLat)
           .setHTML(html)
           .addTo(map.current);

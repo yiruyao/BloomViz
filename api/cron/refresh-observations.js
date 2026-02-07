@@ -49,6 +49,7 @@ function toRows(observations, stateCode) {
       state: stateCode,
       species: obs.taxon?.preferred_common_name || obs.taxon?.name || null,
       scientific_name: obs.taxon?.name || null,
+      taxon_id: obs.taxon_id ?? obs.taxon?.id ?? null,
       observed_on: obs.observed_on || null,
       quality_grade: obs.quality_grade || null,
       user_login: obs.user?.login || null,

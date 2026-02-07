@@ -12,6 +12,7 @@
     "fill-trails": "node scripts/generate-trails.js"
   },
   "dependencies": {
+    "@radix-ui/react-tabs": "^1.1.13",
     "@supabase/supabase-js": "^2.95.2",
     "@turf/turf": "^7.3.3",
     "mapbox-gl": "^3.18.1",

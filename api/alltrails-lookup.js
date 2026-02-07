@@ -1,3 +1,10 @@
+/**
+ * AllTrails URL lookup via SerpAPI (Google search). This API does NOT request
+ * alltrails.com directly—only SerpAPI. User IPs hit AllTrails only when they
+ * click "View on AllTrails" in the browser. If AllTrails blocks an IP, it's
+ * due to that user opening many AllTrails pages in quick succession or using
+ * dev tools on AllTrails; temporary bans usually clear after some time.
+ */
 import { supabase } from '../lib/supabase.js';
 import { STATES } from './lib/states.js';
 
