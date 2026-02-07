@@ -21,7 +21,7 @@ The app has two main views: **Map View** (interactive map with color-coded trail
 
 | Map View | Insights |
 |----------|----------|
-| ![Map View](docs/screenshots/map-view.png) | ![Insights](docs/screenshots/insights.png) |
+| <img src="docs/screenshots/map-view.png" alt="Map View" width="400" /> | <img src="docs/screenshots/insights.png" alt="Insights" width="400" /> |
 
 ---
 
