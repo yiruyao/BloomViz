@@ -111,9 +111,19 @@ export async function fetchTrailCounts(state) {
 }
 
 const trailListCache = new Map();
+const resourcesForTrailCache = new Map();
+
+function resourcesCacheKey(osmWayIds, osmRelationId) {
+  const wayIds = Array.isArray(osmWayIds) ? [...osmWayIds] : osmWayIds != null ? [osmWayIds] : [];
+  const sorted = wayIds.slice().sort((a, b) => Number(a) - Number(b));
+  const wayPart = sorted.join(',');
+  const relPart = osmRelationId != null && osmRelationId !== '' ? String(osmRelationId) : '';
+  return `${wayPart}|${relPart}`;
+}
+
 /**
  * Fetch resources linked to a specific trail (by OSM IDs).
- * Returns [{ id, name, url, description }]
+ * Returns [{ id, name, url, description }]. Results are cached per trail.
  */
 export async function fetchResourcesForTrail(osmWayIds = [], osmRelationId = null) {
   const wayIds = Array.isArray(osmWayIds) ? osmWayIds : [osmWayIds];
@@ -122,10 +132,17 @@ export async function fetchResourcesForTrail(osmWayIds = [], osmRelationId = nul
   if (osmRelationId != null && osmRelationId !== '') params.set('osm_relation_id', String(osmRelationId));
   const qs = params.toString();
   if (!qs) return [];
+
+  const cacheKey = resourcesCacheKey(wayIds, osmRelationId);
+  const cached = resourcesForTrailCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
   try {
     const res = await fetch(apiUrl(`/api/resources-for-trail?${qs}`));
     if (!res.ok) return [];
-    return await parseJsonResponse(res);
+    const data = await parseJsonResponse(res);
+    resourcesForTrailCache.set(cacheKey, data);
+    return data;
   } catch {
     return [];
   }
