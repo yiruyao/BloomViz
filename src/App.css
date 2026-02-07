@@ -626,16 +626,16 @@ body {
 
 .top-species-rank {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #374151;
   color: white;
   font-weight: 600;
-  font-size: 0.7rem;
-  border-radius: 4px;
+  font-size: 0.8rem;
+  border-radius: 6px;
 }
 
 .top-species-name {
