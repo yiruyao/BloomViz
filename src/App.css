@@ -61,7 +61,7 @@ body {
 }
 
 .header.compact h1.app-title {
-  color: #059669;
+  color: #111827;
 }
 
 .header.compact p {
@@ -136,7 +136,7 @@ body {
 }
 
 .header h1.app-title {
-  color: #059669;
+  color: #111827;
 }
 
 .header p {
@@ -183,13 +183,13 @@ body {
 }
 
 .tab-btn:focus-visible {
-  outline: 2px solid #059669;
+  outline: 2px solid #111827;
   outline-offset: 2px;
 }
 
 .tab-btn[data-state="active"] {
   color: #111827;
-  border-bottom-color: #059669;
+  border-bottom-color: #111827;
 }
 
 /* Radix Tabs.Content wrapper */
@@ -265,7 +265,7 @@ body {
 
 .map-error-overlay button {
   padding: 8px 20px;
-  background: #059669;
+  background: #111827;
   color: white;
   border: none;
   border-radius: 6px;
@@ -274,7 +274,7 @@ body {
 }
 
 .map-error-overlay button:hover {
-  background: #047857;
+  background: #374151;
 }
 
 .map-loading-text {
@@ -339,13 +339,13 @@ body {
 }
 
 .map-error a {
-  color: #16a34a;
+  color: #374151;
 }
 
-/* Legend – bottom left (minimal style) */
+/* Legend – bottom left (above Mapbox attribution) */
 .legend {
   position: absolute;
-  bottom: 20px;
+  bottom: 55px;
   left: 20px;
   background: #ffffff;
   padding: 14px 16px;
@@ -423,7 +423,7 @@ body {
 .legend-toggle input {
   width: 14px;
   height: 14px;
-  accent-color: #059669;
+  accent-color: #374151;
 }
 
 .legend-dot {
@@ -520,7 +520,7 @@ body {
 
 .top-trail-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   padding: 12px 16px;
   background: #f9fafb;
@@ -552,17 +552,31 @@ body {
   min-width: 0;
 }
 
+.top-trail-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .top-trail-name {
   font-weight: 600;
-  color: #059669;
+  color: #111827;
   font-size: 1rem;
   text-decoration: none;
-  display: block;
-  margin-bottom: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .top-trail-name:hover {
   text-decoration: underline;
+}
+
+.top-trail-count {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .top-trail-species {
@@ -571,6 +585,7 @@ body {
   align-items: center;
   gap: 6px 10px;
   font-size: 0.85rem;
+  margin-top: 4px;
 }
 
 .top-trail-species-link {
@@ -579,7 +594,7 @@ body {
 }
 
 .top-trail-species-link:hover {
-  color: #059669;
+  color: #111827;
   text-decoration: underline;
 }
 
@@ -587,13 +602,6 @@ body {
   content: ', ';
   color: #9ca3af;
   margin-right: 2px;
-}
-
-.top-trail-count {
-  flex-shrink: 0;
-  font-size: 0.85rem;
-  color: #6b7280;
-  font-weight: 500;
 }
 
 /* Top Species */
@@ -656,7 +664,7 @@ body {
   width: 50px;
   height: 50px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #16a34a;
+  border-top: 4px solid #111827;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 20px;
@@ -695,7 +703,7 @@ body {
 .error button {
   margin-top: 20px;
   padding: 10px 24px;
-  background: #059669;
+  background: #111827;
   color: white;
   border: none;
   border-radius: 6px;
@@ -704,7 +712,7 @@ body {
 }
 
 .error button:hover {
-  background: #047857;
+  background: #374151;
 }
 
 /* Summary Section */
@@ -737,7 +745,7 @@ body {
   display: block;
   font-size: 2rem;
   font-weight: bold;
-  color: #059669;
+  color: #111827;
 }
 
 .stat-label {
@@ -895,7 +903,7 @@ body {
 }
 
 .footer a {
-  color: #059669;
+  color: #374151;
   text-decoration: none;
   margin: 0 4px;
 }
@@ -922,7 +930,7 @@ body {
 
   .legend {
     top: auto;
-    bottom: 20px;
+    bottom: 55px;
     right: 10px;
     left: 10px;
     min-width: auto;
@@ -1015,7 +1023,7 @@ body {
   display: block;
   width: 100%;
   padding: 8px 12px;
-  background: #059669;
+  background: #111827;
   color: white;
   text-align: center;
   text-decoration: none;
@@ -1027,7 +1035,7 @@ body {
 }
 
 .popup-alltrails-btn:hover {
-  background: #047857;
+  background: #374151;
 }
 
 .popup-resources {

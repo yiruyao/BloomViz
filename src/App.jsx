@@ -21,7 +21,7 @@ const stateDataCache = new Map();
 
 function App() {
   const [selectedState, setSelectedState] = useState(DEFAULT_STATE);
-  const [activeTab, setActiveTab] = useState('table');
+  const [activeTab, setActiveTab] = useState('map');
 
   // Optimized list view: top 10 trails + top species from /api/trail-list
   const [trailListData, setTrailListData] = useState(null);
@@ -276,14 +276,19 @@ function App() {
                         <li key={t.trail_name} className="top-trail-card">
                           <span className="top-trail-rank">{index + 1}</span>
                           <div className="top-trail-body">
-                            <a
-                              href={getAllTrailsUrl(t.trail_name, STATES[selectedState]?.name)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="top-trail-name"
-                            >
-                              {t.trail_name}
-                            </a>
+                            <div className="top-trail-title-row">
+                              <a
+                                href={getAllTrailsUrl(t.trail_name, STATES[selectedState]?.name)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="top-trail-name"
+                              >
+                                {t.trail_name}
+                              </a>
+                              <span className="top-trail-count">
+                                {t.observation_count} {t.observation_count === 1 ? 'sighting' : 'sightings'}
+                              </span>
+                            </div>
                             {Array.isArray(t.species_breakdown) && t.species_breakdown.length > 0 && (
                               <div className="top-trail-species">
                                 {t.species_breakdown.slice(0, 3).map((s, i) => (
@@ -300,9 +305,6 @@ function App() {
                               </div>
                             )}
                           </div>
-                          <span className="top-trail-count">
-                            {t.observation_count} {t.observation_count === 1 ? 'sighting' : 'sightings'}
-                          </span>
                         </li>
                       ))}
                     </ol>
