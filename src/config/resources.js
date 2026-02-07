@@ -6,18 +6,33 @@
 /**
  * Check if a resource has a trail link matching the trail's OSM IDs
  * @param {object} resource - { trail_links: [{ osm_type, osm_id }] }
- * @param {object} trailProps - { osm_way_ids?, osm_relation_id? }
+ * @param {object} trailProps - { osm_way_ids?, osmIds?, osm_relation_id?, osmId? }
  */
 export function resourceMatchesTrail(resource, trailProps) {
   const links = resource.trail_links || [];
   if (links.length === 0) return false;
 
-  const wayIds = new Set(trailProps.osm_way_ids || []);
-  const relationId = trailProps.osm_relation_id;
+  let rawWayIds = trailProps.osm_way_ids ?? trailProps.osmIds;
+  if (typeof rawWayIds === 'string') {
+    try {
+      rawWayIds = JSON.parse(rawWayIds);
+    } catch {
+      rawWayIds = null;
+    }
+  }
+  const wayIdList = Array.isArray(rawWayIds) ? rawWayIds : rawWayIds != null ? [rawWayIds] : [];
+  const wayIds = new Set(wayIdList.map((id) => Number(id)).filter((n) => !Number.isNaN(n)));
+  const relationId =
+    (trailProps.osm_relation_id ?? trailProps.osmId) != null
+      ? Number(trailProps.osm_relation_id ?? trailProps.osmId)
+      : null;
 
   for (const link of links) {
-    if (link.osm_type === 'way' && wayIds.has(link.osm_id)) return true;
-    if (link.osm_type === 'relation' && relationId === link.osm_id) return true;
+    const linkOsmId = Number(link.osm_id);
+    if (Number.isNaN(linkOsmId)) continue;
+    const type = String(link.osm_type || '').toLowerCase();
+    if (type === 'way' && wayIds.has(linkOsmId)) return true;
+    if (type === 'relation' && relationId === linkOsmId) return true;
   }
   return false;
 }

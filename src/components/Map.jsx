@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { getAllTrailsUrl, hasResourcesForTrail } from '../config/resources';
+import { getAllTrailsUrl } from '../config/resources';
+import { fetchResourcesForTrail } from '../services/api';
 import { STATES } from '../config/states';
 import ResourcesPanel from './ResourcesPanel';
 
@@ -12,7 +13,7 @@ const DEFAULT_CENTER = [-122.35, 37.45];
 const DEFAULT_ZOOM = 10;
 
 export default function MapView(props) {
-  const { trailsGeoJSON, trailsRaw, observationsGeoJSON, center, zoom, selectedState, showObservations = false, onShowObservationsChange, resources = [] } = props ?? {};
+  const { trailsGeoJSON, trailsRaw, observationsGeoJSON, center, zoom, selectedState, showObservations = false, onShowObservationsChange } = props ?? {};
   const mapCenter = center || DEFAULT_CENTER;
   const mapZoom = zoom ?? DEFAULT_ZOOM;
   const showStyledTrails = Boolean(trailsGeoJSON?.features?.length);
@@ -22,22 +23,48 @@ export default function MapView(props) {
   const [showResourcesPanel, setShowResourcesPanel] = useState(false);
   const [selectedTrailName, setSelectedTrailName] = useState('');
   const [selectedTrailProps, setSelectedTrailProps] = useState(null);
+  const [panelResources, setPanelResources] = useState([]);
+  const [panelLoading, setPanelLoading] = useState(false);
 
   // Expose function to window for popup button click (receives DOM button with data attrs)
-  const handleShowResources = useCallback((btnOrName) => {
+  const handleShowResources = useCallback(async (btnOrName) => {
     if (typeof btnOrName === 'string') {
       setSelectedTrailName(btnOrName);
       setSelectedTrailProps(null);
-    } else if (btnOrName?.getAttribute) {
+      setPanelResources([]);
+      setPanelLoading(false);
+      setShowResourcesPanel(true);
+      return;
+    }
+    if (btnOrName?.getAttribute) {
       setSelectedTrailName(btnOrName.getAttribute('data-trail-name') || '');
+      setShowResourcesPanel(true);
+      setPanelResources([]);
+      setPanelLoading(true);
       try {
-        const json = btnOrName.getAttribute('data-trail-props');
-        setSelectedTrailProps(json ? JSON.parse(json) : null);
-      } catch {
-        setSelectedTrailProps(null);
+        const propsJson = btnOrName.getAttribute('data-trail-props');
+        const trailProps = propsJson ? JSON.parse(propsJson) : null;
+        setSelectedTrailProps(trailProps);
+        if (!trailProps) return;
+        let wayIds = trailProps.osm_way_ids ?? trailProps.osmIds ?? [];
+        if (typeof wayIds === 'string') {
+          try {
+            wayIds = JSON.parse(wayIds);
+          } catch {
+            wayIds = [];
+          }
+        }
+        if (!Array.isArray(wayIds)) wayIds = wayIds != null ? [wayIds] : [];
+        const relationId = trailProps.osm_relation_id ?? trailProps.osmId ?? null;
+        const resources = await fetchResourcesForTrail(wayIds, relationId);
+        setPanelResources(resources);
+      } catch (err) {
+        console.error('[Resources] fetch error:', err);
+        setPanelResources([]);
+      } finally {
+        setPanelLoading(false);
       }
     }
-    setShowResourcesPanel(true);
   }, []);
 
   useEffect(() => {
@@ -189,19 +216,19 @@ export default function MapView(props) {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         const props = feature.properties;
-        const trailProps = { osm_way_ids: props.osm_way_ids || [], osm_relation_id: props.osm_relation_id ?? null };
-        const showResourcesBtn = hasResourcesForTrail(resources, trailProps);
-        const trailPropsAttr = showResourcesBtn ? ` data-trail-props='${JSON.stringify(trailProps).replace(/'/g, '&#39;')}' data-trail-name='${String(props.name || '').replace(/'/g, '&#39;')}'` : '';
+        const trailProps = {
+          osm_way_ids: props.osm_way_ids ?? props.osmIds,
+          osm_relation_id: props.osm_relation_id ?? props.osmId,
+        };
+        const trailPropsAttr = ` data-trail-props='${JSON.stringify(trailProps).replace(/'/g, '&#39;')}' data-trail-name='${String(props.name || '').replace(/'/g, '&#39;')}'`;
 
         // Use AllTrails search URL only (no API lookup). Direct trail URLs from SerpAPI
         // can trigger AllTrails' bot detection and IP blocks even with few opens.
         const allTrailsUrl = getAllTrailsUrl(props.name, STATES[selectedState]?.name);
 
-        const resourcesHtml = showResourcesBtn
-          ? `<button class="popup-resources-btn"${trailPropsAttr} onclick="window.showResourcesPanel(this)">
+        const resourcesHtml = `<button class="popup-resources-btn"${trailPropsAttr} onclick="window.showResourcesPanel(this)">
                 Resources & Reports
-              </button>`
-          : '';
+              </button>`;
 
         new mapboxgl.Popup({ maxWidth: '280px' })
           .setLngLat(e.lngLat)
@@ -233,7 +260,7 @@ export default function MapView(props) {
       canvas.style.setProperty('cursor', 'grab', 'important');
     });
 
-  }, [mapLoaded, trailsGeoJSON, selectedState, resources]);
+  }, [mapLoaded, trailsGeoJSON, selectedState]);
 
   // Add/update observations layer
   useEffect(() => {
@@ -348,9 +375,8 @@ export default function MapView(props) {
       {/* Resources Panel */}
       {showResourcesPanel && (
         <ResourcesPanel
-          trailName={selectedTrailName}
-          trailProps={selectedTrailProps}
-          resources={resources}
+          resources={panelResources}
+          loading={panelLoading}
           onClose={() => setShowResourcesPanel(false)}
         />
       )}

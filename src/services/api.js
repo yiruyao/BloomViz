@@ -111,20 +111,21 @@ export async function fetchTrailCounts(state) {
 }
 
 const trailListCache = new Map();
-const resourcesCache = { data: null };
-
 /**
- * Fetch resource links with trail links (for Resources & Reports).
- * Returns [{ id, name, url, description, trail_links: [{ osm_type, osm_id }] }]
+ * Fetch resources linked to a specific trail (by OSM IDs).
+ * Returns [{ id, name, url, description }]
  */
-export async function fetchResources() {
-  if (resourcesCache.data) return resourcesCache.data;
+export async function fetchResourcesForTrail(osmWayIds = [], osmRelationId = null) {
+  const wayIds = Array.isArray(osmWayIds) ? osmWayIds : [osmWayIds];
+  const params = new URLSearchParams();
+  if (wayIds.length > 0) params.set('osm_way_ids', wayIds.join(','));
+  if (osmRelationId != null && osmRelationId !== '') params.set('osm_relation_id', String(osmRelationId));
+  const qs = params.toString();
+  if (!qs) return [];
   try {
-    const res = await fetch(apiUrl('/api/resources'));
+    const res = await fetch(apiUrl(`/api/resources-for-trail?${qs}`));
     if (!res.ok) return [];
-    const data = await parseJsonResponse(res);
-    resourcesCache.data = data;
-    return data;
+    return await parseJsonResponse(res);
   } catch {
     return [];
   }

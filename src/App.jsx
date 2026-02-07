@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { fetchTrails, fetchObservations, fetchTrailCounts, fetchTrailList, fetchResources } from './services/api';
+import { fetchTrails, fetchObservations, fetchTrailCounts, fetchTrailList } from './services/api';
 import {
   calculateTrailDensity,
   buildResultsFromCounts,
@@ -39,7 +39,6 @@ function App() {
   const [mapError, setMapError] = useState(null);
 
   const [showObservations, setShowObservations] = useState(false);
-  const [resources, setResources] = useState([]);
   const mountRef = useRef(true);
 
   // Load optimized trail-list for list view (top 10 trails + top species)
@@ -69,21 +68,6 @@ function App() {
     return () => { mountRef.current = false; };
   }, [selectedState]);
 
-  // Load resources (for Resources & Reports) when map tab is active
-  useEffect(() => {
-    if (activeTab !== 'map') return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await fetchResources();
-        if (!cancelled) setResources(data);
-      } catch {
-        if (!cancelled) setResources([]);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [activeTab]);
-
   // When user opens map tab, load full trails + counts (or observations) if not cached
   useEffect(() => {
     if (activeTab !== 'map') return;
@@ -106,7 +90,7 @@ function App() {
 
     (async function loadMapData() {
       try {
-        setMapLoadingStatus('Loading trails...');
+        setMapLoadingStatus('Loading Trails');
         const trailsData = await fetchTrails(selectedState);
         if (cancelled) return;
         const trailFeatures = trailsData?.features ?? [];
@@ -117,7 +101,7 @@ function App() {
         }
         setTrails(trailsData);
 
-        setMapLoadingStatus('Loading counts...');
+        setMapLoadingStatus('Loading Trails');
         const [observationsData, trailCountsData] = await Promise.all([
           fetchObservations(selectedState),
           fetchTrailCounts(selectedState).catch(() => null),
@@ -127,10 +111,10 @@ function App() {
         setObservations(observationsData);
         let analysisResults;
         if (Array.isArray(trailCountsData) && trailCountsData.length > 0) {
-          setMapLoadingStatus('Applying counts...');
+          setMapLoadingStatus('Loading Trails');
           analysisResults = buildResultsFromCounts(trailsData, trailCountsData);
         } else {
-          setMapLoadingStatus('Analyzing...');
+          setMapLoadingStatus('Loading Trails');
           analysisResults = calculateTrailDensity(trailsData, observationsData);
         }
         if (cancelled) return;
@@ -243,7 +227,7 @@ function App() {
             )}
             {mapLoading && !stateDataCache.get(selectedState.toLowerCase()) && (
               <div className="map-loading-overlay" aria-hidden>
-                <span className="map-loading-text">{mapLoadingStatus || 'Loading map…'}</span>
+                <span className="map-loading-text">{mapLoadingStatus || 'Loading Trails'}</span>
               </div>
             )}
             <MapView
@@ -255,7 +239,6 @@ function App() {
               selectedState={selectedState}
               showObservations={showObservations}
               onShowObservationsChange={setShowObservations}
-              resources={resources}
             />
             <Legend
               showObservations={showObservations}
@@ -268,7 +251,7 @@ function App() {
           <div className="table-view trail-list-overhaul">
             {listLoading ? (
               <div className="trail-list-loading">
-                <span className="trail-list-loading-text">Loading trail list…</span>
+                <span className="trail-list-loading-text">Loading Insights</span>
               </div>
             ) : (
               <>

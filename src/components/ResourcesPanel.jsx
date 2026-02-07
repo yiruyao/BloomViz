@@ -1,14 +1,10 @@
-import { filterResourcesForTrail } from '../config/resources';
-
 /**
  * ResourcesPanel - Floating panel that shows wildflower resource links
  * Appears when user clicks "Resources & Reports" button in trail popup.
- * Shows only resources linked to this trail via resource_trail_links (osm_type, osm_id).
+ * Receives pre-filtered resources (those linked to this trail via resource_trail_links).
  */
-export default function ResourcesPanel({ trailName, trailProps, resources = [], onClose }) {
-  const displayResources = trailProps
-    ? filterResourcesForTrail(resources, trailProps)
-    : resources;
+export default function ResourcesPanel({ resources = [], loading = false, onClose }) {
+  const displayResources = resources;
 
   return (
     <div className="resources-panel">
@@ -19,15 +15,13 @@ export default function ResourcesPanel({ trailName, trailProps, resources = [], 
         </button>
       </div>
 
-      {trailName && (
-        <p className="resources-panel-trail">For: {trailName}</p>
-      )}
-
       <div className="resources-panel-list">
-        {displayResources.length > 0 ? (
-          displayResources.map((resource) => (
+        {loading ? (
+          <p className="resources-panel-empty">Loading…</p>
+        ) : displayResources.length > 0 ? (
+          displayResources.map((resource, idx) => (
             <a
-              key={resource.id}
+              key={`${resource.id}-${resource.name}-${idx}`}
               href={resource.url}
               target="_blank"
               rel="noopener noreferrer"
