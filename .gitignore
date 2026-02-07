@@ -17,8 +17,8 @@ dist
 dist-ssr
 *.local
 
-# Screenshots
-*screenshot*
+# Screenshots (root-level; docs/screenshots/ is tracked for README)
+/*screenshot*
 
 # Editor directories and files
 .vscode/*
