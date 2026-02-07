@@ -37,7 +37,13 @@ export default function MapView(props) {
       return;
     }
     if (btnOrName?.getAttribute) {
-      setSelectedTrailName(btnOrName.getAttribute('data-trail-name') || '');
+      const trailName = btnOrName.getAttribute('data-trail-name') || '';
+      // Toggle closed if panel is already open for the same trail
+      if (showResourcesPanel && trailName === selectedTrailName) {
+        setShowResourcesPanel(false);
+        return;
+      }
+      setSelectedTrailName(trailName);
       setShowResourcesPanel(true);
       setPanelResources([]);
       setPanelLoading(true);
@@ -65,7 +71,7 @@ export default function MapView(props) {
         setPanelLoading(false);
       }
     }
-  }, []);
+  }, [showResourcesPanel, selectedTrailName]);
 
   useEffect(() => {
     window.showResourcesPanel = handleShowResources;

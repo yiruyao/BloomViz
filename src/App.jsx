@@ -217,7 +217,7 @@ function App() {
         </Tabs.List>
 
         <main className="main-content">
-          <Tabs.Content value="map" className="tab-content tab-content-map">
+          <Tabs.Content value="map" className="tab-content tab-content-map" forceMount>
           <div className="map-view">
             {mapError && (
               <div className="map-error-overlay">
