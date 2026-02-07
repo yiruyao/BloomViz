@@ -3,7 +3,6 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "functions": {
-    "api/cron/refresh-observations.js": { "maxDuration": 60 },
     "api/cron/refresh-observations-ca.js": { "maxDuration": 60 },
     "api/cron/refresh-observations-or.js": { "maxDuration": 60 },
     "api/cron/refresh-observations-wa.js": { "maxDuration": 60 },

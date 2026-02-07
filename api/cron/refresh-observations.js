@@ -110,37 +110,5 @@ export async function refreshOneState(stateCode, d1, d2) {
   return { count: rows.length };
 }
 
-const CRON_NAME = 'refresh-observations';
-
-export default async function handler(req, res) {
-  const authHeader = (req.headers && (req.headers.authorization || req.headers['authorization'])) || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (!token || token !== process.env.CRON_SECRET) {
-    console.warn(`[${CRON_NAME}] Unauthorized: missing or invalid CRON_SECRET`);
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const d1 = formatDate(sevenDaysAgo);
-  const d2 = formatDate(new Date());
-  console.log(`[${CRON_NAME}] Starting d1=${d1} d2=${d2} states=${Object.keys(STATES).join(',')}`);
-
-  const results = { states: {}, error: null };
-
-  for (const stateCode of Object.keys(STATES)) {
-    try {
-      const result = await refreshOneState(stateCode, d1, d2);
-      results.states[stateCode] = result;
-      console.log(`[${CRON_NAME}] ${stateCode} ok: count=${result.count}`);
-    } catch (err) {
-      console.error(`[${CRON_NAME}] ${stateCode} failed:`, err);
-      results.error = results.error || err.message;
-      results.states[stateCode] = { error: err.message };
-    }
-  }
-
-  const status = results.error ? 207 : 200;
-  console.log(`[${CRON_NAME}] Finished status=${status}`, results.error ? { error: results.error } : '');
-  return res.status(status).json(results);
-}
+// No default handler: scheduled crons use refresh-observations-ca, -or, -wa only.
+// For manual backfill use scripts/backfill-observations.js or call each state endpoint.
