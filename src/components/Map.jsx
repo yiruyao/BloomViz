@@ -12,13 +12,12 @@ const DEFAULT_CENTER = [-122.35, 37.45];
 const DEFAULT_ZOOM = 10;
 
 export default function MapView(props) {
-  const { trailsGeoJSON, trailsRaw, observationsGeoJSON, center, zoom, selectedState } = props ?? {};
+  const { trailsGeoJSON, trailsRaw, observationsGeoJSON, center, zoom, selectedState, showObservations = false, onShowObservationsChange } = props ?? {};
   const mapCenter = center || DEFAULT_CENTER;
   const mapZoom = zoom ?? DEFAULT_ZOOM;
   const showStyledTrails = Boolean(trailsGeoJSON?.features?.length);
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const [showObservations, setShowObservations] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showResourcesPanel, setShowResourcesPanel] = useState(false);
   const [selectedTrailName, setSelectedTrailName] = useState('');
@@ -334,18 +333,6 @@ export default function MapView(props) {
   return (
     <div className="map-container">
       <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
-      
-      {/* Toggle for observation points */}
-      <div className="map-controls">
-        <label className="toggle-label">
-          <input
-            type="checkbox"
-            checked={showObservations}
-            onChange={(e) => setShowObservations(e.target.checked)}
-          />
-          Show observation points
-        </label>
-      </div>
 
       {/* Resources Panel */}
       {showResourcesPanel && (

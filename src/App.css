@@ -116,6 +116,10 @@ body {
   margin-bottom: 8px;
 }
 
+.header h1.app-title {
+  color: #2563eb;
+}
+
 .header p {
   opacity: 0.9;
   font-size: 1.1rem;
@@ -244,34 +248,10 @@ body {
   color: #16a34a;
 }
 
-.map-controls {
-  position: absolute;
-  bottom: 70px;
-  left: 20px;
-  background: white;
-  padding: 10px 14px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-.toggle-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.toggle-label input {
-  width: 16px;
-  height: 16px;
-  accent-color: #16a34a;
-}
-
-/* Legend – bottom left, above "Show observation points" */
+/* Legend – bottom left (includes Trail Activity + observation points toggle) */
 .legend {
   position: absolute;
-  bottom: 130px;
+  bottom: 20px;
   left: 20px;
   background: white;
   padding: 16px;
@@ -324,6 +304,33 @@ body {
   color: #475569;
 }
 
+.legend-item-with-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legend-item-with-toggle .legend-dot {
+  flex-shrink: 0;
+}
+
+.legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #475569;
+}
+
+.legend-toggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: #16a34a;
+}
+
 .legend-dot {
   width: 12px;
   height: 12px;
@@ -362,6 +369,193 @@ body {
   max-width: 1000px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* Trail List Overhaul */
+.trail-list-overhaul {
+  gap: 32px;
+}
+
+.trail-list-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.trail-list-section {
+  background: white;
+  border-radius: 16px;
+  padding: 28px 32px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.trail-list-heading {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.trail-list-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.trail-list-empty {
+  color: #64748b;
+  font-size: 0.95rem;
+  padding: 20px 0;
+}
+
+/* Top 10 Trails */
+.top-trails-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.top-trail-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.top-trail-card:hover {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.top-trail-rank {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #16a34a;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
+.top-trail-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-trail-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.top-trail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.top-trail-count {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.top-trail-count.count-zero {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.top-trail-count.count-low {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.top-trail-count.count-medium {
+  background: #fde047;
+  color: #854d0e;
+}
+
+.top-trail-count.count-high {
+  background: #fdba74;
+  color: #7c2d12;
+}
+
+.top-trail-count.count-very-high {
+  background: #16a34a;
+  color: white;
+}
+
+.top-trail-species {
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Top Species */
+.top-species-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-species-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 10px;
+  border: 1px solid #bbf7d0;
+}
+
+.top-species-rank {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #16a34a;
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
+.top-species-name {
+  flex: 1;
+  font-weight: 500;
+  color: #166534;
+  font-size: 0.95rem;
+}
+
+.top-species-count {
+  font-size: 0.85rem;
+  color: #15803d;
+  font-weight: 600;
 }
 
 /* Loading State */
@@ -642,17 +836,10 @@ body {
 
   .legend {
     top: auto;
-    bottom: 70px;
+    bottom: 20px;
     right: 10px;
     left: 10px;
     min-width: auto;
-  }
-
-  .map-controls {
-    bottom: 60px;
-    left: 10px;
-    right: 10px;
-    text-align: center;
   }
 }
 
@@ -675,6 +862,24 @@ body {
 
   .table-view {
     padding: 16px;
+  }
+
+  .trail-list-section {
+    padding: 20px 20px;
+  }
+
+  .trail-list-heading {
+    font-size: 1.15rem;
+  }
+
+  .top-trail-card {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  .top-trail-meta {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

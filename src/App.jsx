@@ -28,6 +28,7 @@ function App() {
   const [error, setError] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState('');
   const [activeTab, setActiveTab] = useState('map');
+  const [showObservations, setShowObservations] = useState(false);
   const mountRef = useRef(true);
 
   useEffect(() => {
@@ -143,7 +144,7 @@ function App() {
     return (
       <div className="app">
         <header className="header">
-          <h1>BloomScout</h1>
+          <h1 className="app-title">Bloom Map</h1>
           <p>Wildflower Trail Finder</p>
         </header>
         <div className="error">
@@ -159,8 +160,8 @@ function App() {
     <div className="app app-with-map">
       <header className="header compact">
         <div className="header-content">
-          <h1>BloomScout</h1>
-          <p>Wildflower Trail Finder – {STATES[selectedState]?.name ?? selectedState}</p>
+          <h1 className="app-title">Bloom Map</h1>
+          <p>Wildflower Trail Finder</p>
         </div>
         <div className="header-actions">
           {loading && (
@@ -175,7 +176,7 @@ function App() {
           />
           {summary && (
             <div className="header-stats">
-              <span><strong>{summary.trailsWithObservations}</strong> active trails</span>
+              <span><strong>{summary.trailsWithObservations}</strong> blooming trails</span>
               <span><strong>{observations?.features?.length || 0}</strong> observations</span>
             </div>
           )}
@@ -194,7 +195,7 @@ function App() {
           className={`tab-btn ${activeTab === 'table' ? 'active' : ''}`}
           onClick={() => setActiveTab('table')}
         >
-          Trail List
+          Insights
         </button>
       </div>
 
@@ -214,98 +215,81 @@ function App() {
               center={STATES[selectedState]?.center}
               zoom={STATES[selectedState]?.zoom}
               selectedState={selectedState}
+              showObservations={showObservations}
+              onShowObservationsChange={setShowObservations}
             />
-            <Legend />
+            <Legend
+              showObservations={showObservations}
+              onShowObservationsChange={setShowObservations}
+            />
           </div>
         )}
 
-        {/* Table View */}
+        {/* Insights View */}
         {activeTab === 'table' && (
-          <div className="table-view">
-            {/* Summary Stats */}
-            {summary && (
-              <section className="summary">
-                <h2>Analysis Summary</h2>
-                <div className="stats-grid">
-                  <div className="stat">
-                    <span className="stat-value">{summary.totalTrails}</span>
-                    <span className="stat-label">Named Trails</span>
-                  </div>
-                  <div className="stat">
-                    <span className="stat-value">{summary.trailsWithObservations}</span>
-                    <span className="stat-label">Trails with Flowers</span>
-                  </div>
-                  <div className="stat">
-                    <span className="stat-value">{summary.totalObservationsNearTrails}</span>
-                    <span className="stat-label">Observations Near Trails</span>
-                  </div>
-                  <div className="stat">
-                    <span className="stat-value">{observations?.features?.length || 0}</span>
-                    <span className="stat-label">Total Observations</span>
-                  </div>
-                </div>
-                <p className="buffer-note">
-                  Buffer: {summary.bufferDistance}m around trails | Data: Last 7 days
-                </p>
-              </section>
-            )}
+          <div className="table-view trail-list-overhaul">
+            {loading ? (
+              <div className="trail-list-loading">
+                <span className="trail-list-loading-text">{loadingStatus || 'Loading…'}</span>
+              </div>
+            ) : (
+              <>
+                {/* Top 10 Blooming Trails */}
+                <section className="trail-list-section top-trails">
+                  <h2 className="trail-list-heading">Top 10 blooming trails to hike right now</h2>
+                  <p className="trail-list-subtitle">
+                    Best trails for wildflower sightings in {STATES[selectedState]?.name ?? 'your area'} · Last 7 days
+                  </p>
+                  {results && results.length > 0 ? (
+                    <ol className="top-trails-list">
+                      {results.slice(0, 10).map((result, index) => (
+                        <li key={result.name} className="top-trail-card">
+                          <span className="top-trail-rank">{index + 1}</span>
+                          <div className="top-trail-body">
+                            <span className="top-trail-name">{result.name}</span>
+                            <div className="top-trail-meta">
+                              <span className={`top-trail-count count-${getCountClass(result.observationCount)}`}>
+                                {result.observationCount} {result.observationCount === 1 ? 'sighting' : 'sightings'}
+                              </span>
+                              {(result.speciesBreakdown?.length || result.observationsNearby?.length) > 0 && (
+                                <span className="top-trail-species">
+                                  {result.speciesBreakdown?.length
+                                    ? result.speciesBreakdown.slice(0, 3).map(s => s.species).join(', ')
+                                    : [...new Set(result.observationsNearby.map(o => o.species))].slice(0, 3).join(', ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="trail-list-empty">No trails with recent bloom data for this state.</p>
+                  )}
+                </section>
 
-            {/* Species Breakdown */}
-            {speciesBreakdown && speciesBreakdown.length > 0 && (
-              <section className="species-section">
-                <h2>Species Near Trails</h2>
-                <div className="species-tags">
-                  {speciesBreakdown.map(({ species, count }) => (
-                    <span key={species} className="species-tag">
-                      {species}: {count}
-                    </span>
-                  ))}
-                </div>
-              </section>
+                {/* Top species in bloom */}
+                <section className="trail-list-section top-species">
+                  <h2 className="trail-list-heading">Top species in bloom in {STATES[selectedState]?.name ?? 'your area'}</h2>
+                  <p className="trail-list-subtitle">
+                    Most observed wildflowers near trails · Last 7 days
+                  </p>
+                  {speciesBreakdown && speciesBreakdown.length > 0 ? (
+                    <ul className="top-species-list">
+                      {speciesBreakdown.slice(0, 10).map(({ species, count }, index) => (
+                        <li key={species} className="top-species-item">
+                          <span className="top-species-rank">{index + 1}</span>
+                          <span className="top-species-name">{species}</span>
+                          <span className="top-species-count">{count} {count === 1 ? 'sighting' : 'sightings'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="trail-list-empty">No species data yet. Observations may still be loading.</p>
+                  )}
+                </section>
+              </>
             )}
-
-            {/* Results Table */}
-            <section className="results-section">
-              <h2>Trail Rankings by Wildflower Activity</h2>
-              {results && results.length > 0 ? (
-                <table className="results-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Trail Name</th>
-                      <th>Observations</th>
-                      <th>Species Spotted</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((result, index) => (
-                      <tr 
-                        key={result.name} 
-                        className={result.observationCount > 0 ? 'has-flowers' : ''}
-                      >
-                        <td className="rank">{index + 1}</td>
-                        <td className="trail-name">{result.name}</td>
-                        <td className="count">
-                          <span className={`count-badge count-${getCountClass(result.observationCount)}`}>
-                            {result.observationCount}
-                          </span>
-                        </td>
-                        <td className="species">
-                          {result.speciesBreakdown?.length
-                            ? result.speciesBreakdown.map(s => s.species).join(', ')
-                            : result.observationsNearby?.length
-                              ? [...new Set(result.observationsNearby.map(o => o.species))].join(', ')
-                              : '-'
-                          }
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="no-results">No trails found for this state.</p>
-              )}
-            </section>
           </div>
         )}
       </main>

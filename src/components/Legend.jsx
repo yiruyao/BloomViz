@@ -1,7 +1,7 @@
 /**
- * Legend component for the trail color scale
+ * Legend component for the trail color scale and observation points toggle
  */
-export default function Legend() {
+export default function Legend({ showObservations, onShowObservationsChange }) {
   const gradientStops = [
     { color: '#fef08a', label: '1' },
     { color: '#fde047', label: '3' },
@@ -30,12 +30,20 @@ export default function Legend() {
       </div>
 
       <div className="legend-items">
-        <div className="legend-item">
+        <div className="legend-item legend-item-with-toggle">
           <span 
             className="legend-dot" 
             style={{ background: '#ec4899', border: '2px solid white' }}
           />
           <span>Observation point</span>
+          <label className="legend-toggle">
+            <input
+              type="checkbox"
+              checked={showObservations ?? false}
+              onChange={(e) => onShowObservationsChange?.(e.target.checked)}
+            />
+            <span>Show</span>
+          </label>
         </div>
       </div>
     </div>
