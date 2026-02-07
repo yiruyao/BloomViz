@@ -185,6 +185,38 @@ body {
   pointer-events: none;
 }
 
+.map-error-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  padding: 24px 32px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.map-error-overlay p {
+  margin-bottom: 12px;
+  color: #64748b;
+}
+
+.map-error-overlay button {
+  padding: 8px 20px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.map-error-overlay button:hover {
+  background: #15803d;
+}
+
 .map-loading-text {
   white-space: nowrap;
 }

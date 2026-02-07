@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { fetchTrails, fetchObservations, fetchTrailCounts } from './services/api';
+import { fetchTrails, fetchObservations, fetchTrailCounts, fetchTrailList } from './services/api';
 import {
   calculateTrailDensity,
   buildResultsFromCounts,
@@ -14,30 +14,63 @@ import './App.css';
 
 const DEFAULT_STATE = 'ca';
 
-// Per-state cache: once a state is loaded, switching back is instant (no refetch, no re-analysis)
+// Per-state cache for full map data (trails + results); list view uses optimized trail-list API
 const stateDataCache = new Map();
 
 function App() {
   const [selectedState, setSelectedState] = useState(DEFAULT_STATE);
+  const [activeTab, setActiveTab] = useState('table');
+
+  // Optimized list view: top 10 trails + top species from /api/trail-list
+  const [trailListData, setTrailListData] = useState(null);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState(null);
+
+  // Full map data (lazy-loaded when user opens map)
   const [trails, setTrails] = useState(null);
   const [observations, setObservations] = useState(null);
   const [results, setResults] = useState(null);
   const [summary, setSummary] = useState(null);
   const [speciesBreakdown, setSpeciesBreakdown] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [loadingStatus, setLoadingStatus] = useState('');
-  const [activeTab, setActiveTab] = useState('map');
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapLoadingStatus, setMapLoadingStatus] = useState('');
+  const [mapError, setMapError] = useState(null);
+
   const [showObservations, setShowObservations] = useState(false);
   const mountRef = useRef(true);
 
+  // Load optimized trail-list for list view (top 10 trails + top species)
   useEffect(() => {
     const stateKey = selectedState.toLowerCase();
-    if (typeof console !== 'undefined') {
-      console.log('[BloomScout] Loading data for state:', stateKey);
-    }
+    mountRef.current = true;
+    setListError(null);
+    setListLoading(true);
 
-    // Restore from cache when switching back to a previously loaded state
+    (async function loadTrailList() {
+      try {
+        const data = await fetchTrailList(selectedState);
+        if (!mountRef.current) return;
+        setTrailListData(data);
+      } catch (err) {
+        if (!mountRef.current) return;
+        console.error('Trail list load error:', err);
+        const msg = err?.message || String(err);
+        const isAbort = err?.name === 'AbortError' || /aborted|signal is aborted/i.test(msg);
+        setListError(isAbort ? 'Request timed out. Please try again.' : msg);
+        setTrailListData(null);
+      } finally {
+        if (mountRef.current) setListLoading(false);
+      }
+    })();
+
+    return () => { mountRef.current = false; };
+  }, [selectedState]);
+
+  // When user opens map tab, load full trails + counts (or observations) if not cached
+  useEffect(() => {
+    if (activeTab !== 'map') return;
+
+    const stateKey = selectedState.toLowerCase();
     const cached = stateDataCache.get(stateKey);
     if (cached) {
       setTrails(cached.trails);
@@ -45,59 +78,50 @@ function App() {
       setResults(cached.results);
       setSummary(cached.summary);
       setSpeciesBreakdown(cached.speciesBreakdown);
-      setLoading(false);
-      setError(null);
-      setLoadingStatus('');
+      setMapError(null);
       return;
     }
 
-    mountRef.current = true;
-    async function loadData() {
+    let cancelled = false;
+    setMapError(null);
+    setMapLoading(true);
+
+    (async function loadMapData() {
       try {
-        setLoading(true);
-        setError(null);
-
-        setLoadingStatus('Loading trails...');
+        setMapLoadingStatus('Loading trails...');
         const trailsData = await fetchTrails(selectedState);
-        if (!mountRef.current) return;
-
+        if (cancelled) return;
         const trailFeatures = trailsData?.features ?? [];
         if (trailFeatures.length === 0) {
-          setError('No trail data for this state. Run the fill-trails script and ensure the database is configured.');
-          setLoading(false);
+          setMapError('No trail data for this state. Run the fill-trails script and ensure the database is configured.');
+          setMapLoading(false);
           return;
         }
         setTrails(trailsData);
-        console.log('Trails loaded:', trailFeatures.length);
 
-        setLoadingStatus('Loading observations...');
+        setMapLoadingStatus('Loading counts...');
         const [observationsData, trailCountsData] = await Promise.all([
           fetchObservations(selectedState),
           fetchTrailCounts(selectedState).catch(() => null),
         ]);
-        if (!mountRef.current) return;
+        if (cancelled) return;
 
         setObservations(observationsData);
-        const obsCount = observationsData?.features?.length ?? 0;
-        console.log('Observations loaded:', obsCount);
-
         let analysisResults;
         if (Array.isArray(trailCountsData) && trailCountsData.length > 0) {
-          setLoadingStatus('Applying counts...');
+          setMapLoadingStatus('Applying counts...');
           analysisResults = buildResultsFromCounts(trailsData, trailCountsData);
-          console.log('Using precomputed trail counts');
         } else {
-          setLoadingStatus('Analyzing...');
+          setMapLoadingStatus('Analyzing...');
           analysisResults = calculateTrailDensity(trailsData, observationsData);
         }
-        setResults(analysisResults);
+        if (cancelled) return;
 
         const newSummary = getAnalysisSummary(analysisResults);
         const newSpeciesBreakdown = getSpeciesBreakdown(analysisResults);
+        setResults(analysisResults);
         setSummary(newSummary);
         setSpeciesBreakdown(newSpeciesBreakdown);
-
-        // Cache this state so switching back is instant
         stateDataCache.set(stateKey, {
           trails: trailsData,
           observations: observationsData,
@@ -105,24 +129,23 @@ function App() {
           summary: newSummary,
           speciesBreakdown: newSpeciesBreakdown,
         });
-
-        setLoadingStatus('');
-        setLoading(false);
       } catch (err) {
-        if (!mountRef.current) return;
-        console.error('Error loading data:', err);
-        const msg = err?.message || String(err);
-        const isAbort = err?.name === 'AbortError' || /aborted|signal is aborted/i.test(msg);
-        setError(isAbort ? 'Request timed out while loading trails. Please try again.' : msg || 'Failed to load data');
-        setLoading(false);
+        if (!cancelled) {
+          console.error('Map data load error:', err);
+          const msg = err?.message || String(err);
+          const isAbort = err?.name === 'AbortError' || /aborted|signal is aborted/i.test(msg);
+          setMapError(isAbort ? 'Request timed out. Please try again.' : msg);
+        }
+      } finally {
+        if (!cancelled) {
+          setMapLoading(false);
+          setMapLoadingStatus('');
+        }
       }
-    }
+    })();
 
-    loadData();
-    return () => {
-      mountRef.current = false;
-    };
-  }, [selectedState]);
+    return () => { cancelled = true; };
+  }, [activeTab, selectedState]);
 
   // Create GeoJSON with observation counts for the map
   const trailsWithCounts = useMemo(() => {
@@ -140,16 +163,18 @@ function App() {
     };
   }, [results]);
 
-  if (error) {
+  const headerSummary = trailListData?.summary ?? summary;
+
+  if (listError && !trailListData) {
     return (
       <div className="app">
         <header className="header">
-          <h1 className="app-title">Bloom Map</h1>
+          <h1 className="app-title">Bloom Scout</h1>
           <p>Wildflower Trail Finder</p>
         </header>
         <div className="error">
-          <h2>Error Loading Data</h2>
-          <p>{error}</p>
+          <h2>Error Loading Trail List</h2>
+          <p>{listError}</p>
           <button onClick={() => window.location.reload()}>Retry</button>
         </div>
       </div>
@@ -160,24 +185,29 @@ function App() {
     <div className="app app-with-map">
       <header className="header compact">
         <div className="header-content">
-          <h1 className="app-title">Bloom Map</h1>
+          <h1 className="app-title">Bloom Scout</h1>
           <p>Wildflower Trail Finder</p>
         </div>
         <div className="header-actions">
-          {loading && (
+          {listLoading && (
             <span className="header-loading" aria-live="polite">
-              {loadingStatus || 'Loading…'}
+              Loading list…
+            </span>
+          )}
+          {activeTab === 'map' && mapLoading && (
+            <span className="header-loading" aria-live="polite">
+              {mapLoadingStatus || 'Loading map…'}
             </span>
           )}
           <StateSelector
             value={selectedState}
             onChange={setSelectedState}
-            disabled={loading}
+            disabled={listLoading}
           />
-          {summary && (
+          {headerSummary && (
             <div className="header-stats">
-              <span><strong>{summary.trailsWithObservations}</strong> blooming trails</span>
-              <span><strong>{observations?.features?.length || 0}</strong> observations</span>
+              <span><strong>{headerSummary.trailsWithObservations}</strong> blooming trails</span>
+              <span><strong>{headerSummary.totalObservations ?? observations?.features?.length ?? 0}</strong> observations</span>
             </div>
           )}
         </div>
@@ -195,7 +225,7 @@ function App() {
           className={`tab-btn ${activeTab === 'table' ? 'active' : ''}`}
           onClick={() => setActiveTab('table')}
         >
-          Insights
+          Trail List
         </button>
       </div>
 
@@ -203,9 +233,15 @@ function App() {
         {/* Map View */}
         {activeTab === 'map' && (
           <div className="map-view">
-            {loading && (
+            {mapError && (
+              <div className="map-error-overlay">
+                <p>{mapError}</p>
+                <button type="button" onClick={() => window.location.reload()}>Retry</button>
+              </div>
+            )}
+            {mapLoading && !stateDataCache.get(selectedState.toLowerCase()) && (
               <div className="map-loading-overlay" aria-hidden>
-                <span className="map-loading-text">{loadingStatus || 'Loading trails…'}</span>
+                <span className="map-loading-text">{mapLoadingStatus || 'Loading map…'}</span>
               </div>
             )}
             <MapView
@@ -225,37 +261,34 @@ function App() {
           </div>
         )}
 
-        {/* Insights View */}
+        {/* Trail List View – data from optimized /api/trail-list */}
         {activeTab === 'table' && (
           <div className="table-view trail-list-overhaul">
-            {loading ? (
+            {listLoading ? (
               <div className="trail-list-loading">
-                <span className="trail-list-loading-text">{loadingStatus || 'Loading…'}</span>
+                <span className="trail-list-loading-text">Loading trail list…</span>
               </div>
             ) : (
               <>
-                {/* Top 10 Blooming Trails */}
                 <section className="trail-list-section top-trails">
                   <h2 className="trail-list-heading">Top 10 blooming trails to hike right now</h2>
                   <p className="trail-list-subtitle">
                     Best trails for wildflower sightings in {STATES[selectedState]?.name ?? 'your area'} · Last 7 days
                   </p>
-                  {results && results.length > 0 ? (
+                  {trailListData?.topTrails?.length > 0 ? (
                     <ol className="top-trails-list">
-                      {results.slice(0, 10).map((result, index) => (
-                        <li key={result.name} className="top-trail-card">
+                      {trailListData.topTrails.map((t, index) => (
+                        <li key={t.trail_name} className="top-trail-card">
                           <span className="top-trail-rank">{index + 1}</span>
                           <div className="top-trail-body">
-                            <span className="top-trail-name">{result.name}</span>
+                            <span className="top-trail-name">{t.trail_name}</span>
                             <div className="top-trail-meta">
-                              <span className={`top-trail-count count-${getCountClass(result.observationCount)}`}>
-                                {result.observationCount} {result.observationCount === 1 ? 'sighting' : 'sightings'}
+                              <span className={`top-trail-count count-${getCountClass(t.observation_count)}`}>
+                                {t.observation_count} {t.observation_count === 1 ? 'sighting' : 'sightings'}
                               </span>
-                              {(result.speciesBreakdown?.length || result.observationsNearby?.length) > 0 && (
+                              {Array.isArray(t.species_breakdown) && t.species_breakdown.length > 0 && (
                                 <span className="top-trail-species">
-                                  {result.speciesBreakdown?.length
-                                    ? result.speciesBreakdown.slice(0, 3).map(s => s.species).join(', ')
-                                    : [...new Set(result.observationsNearby.map(o => o.species))].slice(0, 3).join(', ')}
+                                  {t.species_breakdown.slice(0, 3).map((s) => s?.species ?? 'Unknown').join(', ')}
                                 </span>
                               )}
                             </div>
@@ -268,15 +301,14 @@ function App() {
                   )}
                 </section>
 
-                {/* Top species in bloom */}
                 <section className="trail-list-section top-species">
                   <h2 className="trail-list-heading">Top species in bloom in {STATES[selectedState]?.name ?? 'your area'}</h2>
                   <p className="trail-list-subtitle">
                     Most observed wildflowers near trails · Last 7 days
                   </p>
-                  {speciesBreakdown && speciesBreakdown.length > 0 ? (
+                  {trailListData?.topSpecies?.length > 0 ? (
                     <ul className="top-species-list">
-                      {speciesBreakdown.slice(0, 10).map(({ species, count }, index) => (
+                      {trailListData.topSpecies.map(({ species, count }, index) => (
                         <li key={species} className="top-species-item">
                           <span className="top-species-rank">{index + 1}</span>
                           <span className="top-species-name">{species}</span>
@@ -285,7 +317,7 @@ function App() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="trail-list-empty">No species data yet. Observations may still be loading.</p>
+                    <p className="trail-list-empty">No species data yet.</p>
                   )}
                 </section>
               </>

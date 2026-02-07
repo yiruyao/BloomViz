@@ -107,6 +107,7 @@ export async function fetchAllTrailsLookup(trailName, state) {
 /**
  * Pre-built trail → observation counts (from trail_observation_counts table).
  * Returns null if the table is empty or not yet populated.
+ * Used for Map view (full dataset for styling all trails).
  */
 export async function fetchTrailCounts(state) {
   const key = state.toLowerCase();
@@ -120,5 +121,26 @@ export async function fetchTrailCounts(state) {
   }
   const data = await parseJsonResponse(res);
   trailCountsCache.set(key, data);
+  return data;
+}
+
+const trailListCache = new Map();
+
+/**
+ * Optimized payload for Trail List view only: top 10 trails and top 10 species.
+ * Use this for the list tab instead of full trail-counts.
+ */
+export async function fetchTrailList(state) {
+  const key = state.toLowerCase();
+  if (trailListCache.has(key)) {
+    return trailListCache.get(key);
+  }
+  const res = await fetchWithTimeout(apiUrl(`/api/trail-list?state=${state}`));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || `Trail list fetch failed: ${res.status}`);
+  }
+  const data = await parseJsonResponse(res);
+  trailListCache.set(key, data);
   return data;
 }

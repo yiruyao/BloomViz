@@ -47,6 +47,10 @@ CREATE TABLE IF NOT EXISTS trail_observation_counts (
 CREATE INDEX IF NOT EXISTS idx_trail_observation_counts_state
   ON trail_observation_counts(state);
 
+-- Optimizes /api/trail-list top-10 query: ORDER BY observation_count DESC LIMIT 10
+CREATE INDEX IF NOT EXISTS idx_trail_observation_counts_state_count
+  ON trail_observation_counts(state, observation_count DESC);
+
 -- AllTrails URL lookups: cache trail name → AllTrails direct link (avoids repeated SerpAPI searches)
 CREATE TABLE IF NOT EXISTS alltrails_lookups (
   state VARCHAR(2) NOT NULL,
