@@ -125,6 +125,24 @@ export async function fetchTrailCounts(state) {
 }
 
 const trailListCache = new Map();
+const resourcesCache = { data: null };
+
+/**
+ * Fetch resource links with trail links (for Resources & Reports).
+ * Returns [{ id, name, url, description, trail_links: [{ osm_type, osm_id }] }]
+ */
+export async function fetchResources() {
+  if (resourcesCache.data) return resourcesCache.data;
+  try {
+    const res = await fetch(apiUrl('/api/resources'));
+    if (!res.ok) return [];
+    const data = await parseJsonResponse(res);
+    resourcesCache.data = data;
+    return data;
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Optimized payload for Trail List view only: top 10 trails and top 10 species.

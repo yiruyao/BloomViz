@@ -6,6 +6,25 @@
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 
 /**
+ * Run an Overpass API query
+ */
+async function runOverpassQuery(query) {
+  const response = await fetch(OVERPASS_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `data=${encodeURIComponent(query)}`,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
  * Fetch hiking trails for a US state from OpenStreetMap
  * @param {string} stateName - Full state name: "California", "Oregon", "Washington"
  * @returns {Promise<object>} GeoJSON FeatureCollection
@@ -21,29 +40,16 @@ area["name"="${stateName}"]["admin_level"="4"]->.state;
 out body geom;
 `;
 
-  const response = await fetch(OVERPASS_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
+  const data = await runOverpassQuery(query);
   return convertToGeoJSON(data.elements);
 }
 
 /**
  * Fetch hiking trails in San Mateo County from OpenStreetMap
- * Returns trails as GeoJSON features grouped by name
+ * Returns trails as GeoJSON features with osm_way_ids and osm_relation_id.
+ * Used by backfill script to populate resource_trail_links.
  */
 export async function fetchSanMateoTrails() {
-  // Query for paths, footways, and tracks with names in San Mateo County
-  // Also includes hiking route relations
   const query = `
 [out:json][timeout:60];
 area["name"="San Mateo County"]["admin_level"="6"]->.county;
@@ -54,19 +60,7 @@ area["name"="San Mateo County"]["admin_level"="6"]->.county;
 out body geom;
 `;
 
-  const response = await fetch(OVERPASS_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
+  const data = await runOverpassQuery(query);
   return convertToGeoJSON(data.elements);
 }
 
@@ -75,20 +69,20 @@ out body geom;
  * Groups way fragments by name tag
  */
 function convertToGeoJSON(elements) {
-  // Group ways by name
   const trailsByName = new Map();
 
   for (const element of elements) {
     if (element.type === 'way' && element.geometry && element.tags?.name) {
       const name = element.tags.name;
-      
+
       if (!trailsByName.has(name)) {
         trailsByName.set(name, {
           type: 'Feature',
           properties: {
             name: name,
             highway: element.tags.highway,
-            osmIds: [],
+            osm_way_ids: [],
+            osm_relation_id: null,
           },
           geometry: {
             type: 'MultiLineString',
@@ -98,34 +92,33 @@ function convertToGeoJSON(elements) {
       }
 
       const trail = trailsByName.get(name);
-      trail.properties.osmIds.push(element.id);
-      
-      // Convert geometry array to coordinate array [lon, lat]
-      const coords = element.geometry.map(point => [point.lon, point.lat]);
+      trail.properties.osm_way_ids.push(element.id);
+
+      const coords = element.geometry.map((point) => [point.lon, point.lat]);
       trail.geometry.coordinates.push(coords);
     }
 
-    // Handle relations (hiking routes)
-    if (element.type === 'relation' && element.tags?.name) {
+    if (element.type === 'relation' && element.tags?.name && element.members) {
       const name = element.tags.name;
-      
-      if (!trailsByName.has(name) && element.members) {
+
+      if (!trailsByName.has(name)) {
         const coordinates = [];
-        
         for (const member of element.members) {
           if (member.type === 'way' && member.geometry) {
-            const coords = member.geometry.map(point => [point.lon, point.lat]);
+            const coords = member.geometry.map((point) => [point.lon, point.lat]);
             coordinates.push(coords);
           }
         }
-        
+
         if (coordinates.length > 0) {
           trailsByName.set(name, {
             type: 'Feature',
             properties: {
               name: name,
+              highway: element.tags.highway,
               route: element.tags.route,
-              osmId: element.id,
+              osm_way_ids: [],
+              osm_relation_id: element.id,
             },
             geometry: {
               type: 'MultiLineString',

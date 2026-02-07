@@ -1141,6 +1141,12 @@ body {
   padding: 8px 0;
 }
 
+.resources-panel-empty {
+  padding: 16px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
 .resources-panel-link {
   display: block;
   padding: 12px 16px;

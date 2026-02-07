@@ -38,11 +38,15 @@ function roundCoords(coords) {
   return coords.map(roundCoord);
 }
 
-/** Shrink GeoJSON (round coords, strip props). Chunked inserts keep each write small. */
+/** Shrink GeoJSON (round coords, keep OSM props for resource trail links). Chunked inserts keep each write small. */
 function shrinkGeojson(geojson) {
   const features = (geojson?.features ?? []).map((f) => {
     const props = { name: f.properties?.name };
     if (f.properties?.highway) props.highway = f.properties.highway;
+    if (Array.isArray(f.properties?.osm_way_ids) && f.properties.osm_way_ids.length > 0) {
+      props.osm_way_ids = f.properties.osm_way_ids;
+    }
+    if (f.properties?.osm_relation_id != null) props.osm_relation_id = f.properties.osm_relation_id;
     let geom = f.geometry;
     if (geom?.coordinates) {
       geom = { ...geom, coordinates: roundCoords(geom.coordinates) };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { fetchTrails, fetchObservations, fetchTrailCounts, fetchTrailList } from './services/api';
+import { fetchTrails, fetchObservations, fetchTrailCounts, fetchTrailList, fetchResources } from './services/api';
 import {
   calculateTrailDensity,
   buildResultsFromCounts,
@@ -39,6 +39,7 @@ function App() {
   const [mapError, setMapError] = useState(null);
 
   const [showObservations, setShowObservations] = useState(false);
+  const [resources, setResources] = useState([]);
   const mountRef = useRef(true);
 
   // Load optimized trail-list for list view (top 10 trails + top species)
@@ -67,6 +68,21 @@ function App() {
 
     return () => { mountRef.current = false; };
   }, [selectedState]);
+
+  // Load resources (for Resources & Reports) when map tab is active
+  useEffect(() => {
+    if (activeTab !== 'map') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchResources();
+        if (!cancelled) setResources(data);
+      } catch {
+        if (!cancelled) setResources([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab]);
 
   // When user opens map tab, load full trails + counts (or observations) if not cached
   useEffect(() => {
@@ -239,6 +255,7 @@ function App() {
               selectedState={selectedState}
               showObservations={showObservations}
               onShowObservationsChange={setShowObservations}
+              resources={resources}
             />
             <Legend
               showObservations={showObservations}

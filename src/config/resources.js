@@ -1,29 +1,84 @@
 /**
  * External resource links for wildflower information
+ * Fetched from API with trail_links (osm_type, osm_id); filtered by trail OSM IDs.
  */
-
-export const WILDFLOWER_RESOURCES = [
-  {
-    name: 'Midpen Wildflower Guide',
-    url: 'https://www.openspace.org/where-to-go/nature/wildflowers',
-    description: 'Midpeninsula Regional Open Space District',
-  },
-  {
-    name: 'SMC Parks Spring Flowers',
-    url: 'https://www.smcgov.org/parks/news/enjoy-wildflowers-san-mateo-county-park-spring',
-    description: 'San Mateo County Parks Department',
-  },
-];
 
 /**
- * Generate AllTrails search URL for a trail
+ * Check if a resource has a trail link matching the trail's OSM IDs
+ * @param {object} resource - { trail_links: [{ osm_type, osm_id }] }
+ * @param {object} trailProps - { osm_way_ids?, osm_relation_id? }
+ */
+export function resourceMatchesTrail(resource, trailProps) {
+  const links = resource.trail_links || [];
+  if (links.length === 0) return false;
+
+  const wayIds = new Set(trailProps.osm_way_ids || []);
+  const relationId = trailProps.osm_relation_id;
+
+  for (const link of links) {
+    if (link.osm_type === 'way' && wayIds.has(link.osm_id)) return true;
+    if (link.osm_type === 'relation' && relationId === link.osm_id) return true;
+  }
+  return false;
+}
+
+/**
+ * Filter resources to those that apply to the given trail
+ * @param {Array} resources - From API: [{ id, name, url, description, trail_links }]
+ * @param {object} trailProps - Feature properties with osm_way_ids, osm_relation_id
+ */
+export function filterResourcesForTrail(resources, trailProps) {
+  if (!resources?.length) return [];
+  return resources.filter((r) => resourceMatchesTrail(r, trailProps));
+}
+
+/**
+ * Check if any resource applies to this trail (for conditional button)
+ */
+export function hasResourcesForTrail(resources, trailProps) {
+  return filterResourcesForTrail(resources, trailProps).length > 0;
+}
+
+/**
+ * Slugify trail name for AllTrails URL path (lowercase, hyphens, alphanumeric).
+ * AllTrails direct trail URLs use this format: /trail/us/{state}/{slug}
+ */
+function allTrailsSlug(name) {
+  if (!name || typeof name !== 'string') return '';
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\s*&\s*/g, '-and-')
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
+ * State name -> AllTrails URL segment (lowercase, e.g. "California" -> "california").
+ */
+function allTrailsStateSlug(stateName) {
+  if (!stateName || typeof stateName !== 'string') return 'california';
+  return stateName.toLowerCase().trim().replace(/\s+/g, '-');
+}
+
+/**
+ * AllTrails URL for a trail. Prefers direct trail page when we can build a slug;
+ * otherwise falls back to state trails list (no redirect to explore map).
+ * Note: /search?q=... redirects to /explore with bounding box and is not useful.
+ *
  * @param {string} trailName - Name of the trail
- * @param {string} [stateName] - State name (e.g. "California") for better search results
- * @returns {string} AllTrails search URL
+ * @param {string} [stateName] - State name (e.g. "California")
+ * @returns {string} AllTrails URL (direct trail or state list)
  */
 export function getAllTrailsUrl(trailName, stateName = 'California') {
-  const query = encodeURIComponent(`${trailName} ${stateName}`);
-  return `https://www.alltrails.com/search?q=${query}`;
+  const stateSlug = allTrailsStateSlug(stateName);
+  const trailSlug = allTrailsSlug(trailName);
+  if (trailSlug) {
+    return `https://www.alltrails.com/trail/us/${stateSlug}/${trailSlug}`;
+  }
+  return `https://www.alltrails.com/us/${stateSlug}`;
 }
 
 /**
