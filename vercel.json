@@ -7,6 +7,7 @@
     "api/cron/refresh-observations-ca.js": { "maxDuration": 60 },
     "api/cron/refresh-observations-or.js": { "maxDuration": 60 },
     "api/cron/refresh-observations-wa.js": { "maxDuration": 60 },
+    "api/cron/refresh-trail-counts.js": { "maxDuration": 300 },
     "api/trails/[state].js": { "maxDuration": 60 }
   },
   "headers": [
@@ -23,6 +24,7 @@
   "crons": [
     { "path": "/api/cron/refresh-observations-ca", "schedule": "0 6 * * *" },
     { "path": "/api/cron/refresh-observations-or", "schedule": "2 6 * * *" },
-    { "path": "/api/cron/refresh-observations-wa", "schedule": "4 6 * * *" }
+    { "path": "/api/cron/refresh-observations-wa", "schedule": "4 6 * * *" },
+    { "path": "/api/cron/refresh-trail-counts", "schedule": "10 6 * * *" }
   ]
 }

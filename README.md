@@ -7,7 +7,7 @@ Wildflower trail finder for California, Oregon, and Washington. Trail data is re
 1. **Supabase**: Create a project, run `supabase/schema.sql` in the SQL Editor.
 2. **Env**: Copy `.env.example` to `.env.local`. Set `VITE_MAPBOX_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`. For cron, set `CRON_SECRET` (e.g. `openssl rand -hex 32`).
 3. **Trails**: Backfill trails once from Overpass into Supabase: `node scripts/generate-trails.js`. At runtime the app only reads from the `trails` table (no Overpass calls).
-4. **Cron**: Deploy to Vercel; cron runs daily at 6 AM UTC to refresh observations. To backfill observations immediately, call `GET /api/cron/refresh-observations` with `Authorization: Bearer <CRON_SECRET>`.
+4. **Cron**: Deploy to Vercel. Daily at 6:00–6:04 UTC the observation crons refresh iNaturalist data (CA, OR, WA); at 6:10 UTC `refresh-trail-counts` recomputes `trail_observation_counts`. To backfill observations immediately, call `GET /api/cron/refresh-observations` with `Authorization: Bearer <CRON_SECRET>`. To refresh trail counts manually, call `GET /api/cron/refresh-trail-counts` with the same header.
 
 ## Run locally
 
