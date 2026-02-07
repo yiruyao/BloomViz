@@ -218,7 +218,7 @@ export default function MapView(props) {
 
     // Add click handler for trails
     map.current.off('click', layerId); // remove previous handler when deps change
-    map.current.on('click', layerId, (e) => {
+    map.current.on('click', layerId, async (e) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         const props = feature.properties;
@@ -226,15 +226,29 @@ export default function MapView(props) {
           osm_way_ids: props.osm_way_ids ?? props.osmIds,
           osm_relation_id: props.osm_relation_id ?? props.osmId,
         };
+        let wayIds = trailProps.osm_way_ids ?? trailProps.osmIds ?? [];
+        if (typeof wayIds === 'string') {
+          try {
+            wayIds = JSON.parse(wayIds);
+          } catch {
+            wayIds = [];
+          }
+        }
+        if (!Array.isArray(wayIds)) wayIds = wayIds != null ? [wayIds] : [];
+        const relationId = trailProps.osm_relation_id ?? trailProps.osmId ?? null;
+        const hasOsmIds = wayIds.length > 0 || (relationId != null && relationId !== '');
+        const resources = hasOsmIds ? await fetchResourcesForTrail(wayIds, relationId) : [];
         const trailPropsAttr = ` data-trail-props='${JSON.stringify(trailProps).replace(/'/g, '&#39;')}' data-trail-name='${String(props.name || '').replace(/'/g, '&#39;')}'`;
+        const resourcesHtml =
+          resources.length > 0
+            ? `<button class="popup-resources-btn"${trailPropsAttr} onclick="window.showResourcesPanel(this)">
+                Resources & Reports
+              </button>`
+            : '';
 
         // Use AllTrails search URL only (no API lookup). Direct trail URLs from SerpAPI
         // can trigger AllTrails' bot detection and IP blocks even with few opens.
         const allTrailsUrl = getAllTrailsUrl(props.name, STATES[selectedState]?.name);
-
-        const resourcesHtml = `<button class="popup-resources-btn"${trailPropsAttr} onclick="window.showResourcesPanel(this)">
-                Resources & Reports
-              </button>`;
 
         new mapboxgl.Popup({ maxWidth: '280px' })
           .setLngLat(e.lngLat)
