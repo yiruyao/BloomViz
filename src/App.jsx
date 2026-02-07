@@ -171,7 +171,9 @@ function App() {
     return (
       <div className="app">
         <header className="header">
-          <h1 className="app-title">Bloom Map</h1>
+          <h1 className="app-title">
+            <img src="/bloom-map-logo.png" alt="Bloom Map" className="app-logo" />
+          </h1>
           <p>Wildflower Trail Finder</p>
         </header>
         <div className="error">
@@ -187,7 +189,9 @@ function App() {
     <div className="app app-with-map">
       <header className="header compact">
         <div className="header-content">
-          <h1 className="app-title">Bloom Map</h1>
+          <h1 className="app-title">
+            <img src="/bloom-map-logo.png" alt="Bloom Map" className="app-logo" />
+          </h1>
           <p>Wildflower Trail Finder</p>
         </div>
         <div className="header-actions">

@@ -46,7 +46,7 @@ body {
   margin-bottom: 0;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   border-radius: 0;
   border-bottom: 1px solid #e5e7eb;
   background: #ffffff;
@@ -64,14 +64,23 @@ body {
   color: #111827;
 }
 
-.header.compact p {
-  font-size: 0.75rem;
+.header.compact .app-logo {
+  height: 8rem;
+  margin-bottom: 0;
+}
+
+.header.compact .header-content p {
+  font-size: 0.9rem;
   color: #6b7280;
-  margin-top: 2px;
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 
 .header-content {
-  text-align: left;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .header-actions {
@@ -137,6 +146,13 @@ body {
 
 .header h1.app-title {
   color: #111827;
+}
+
+.header .app-logo {
+  display: block;
+  height: 12rem;
+  width: auto;
+  margin-bottom: 4px;
 }
 
 .header p {
