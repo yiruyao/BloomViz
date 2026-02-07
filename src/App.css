@@ -560,9 +560,9 @@ body {
 }
 
 .top-trail-name {
-  font-weight: 600;
+  font-weight: 500;
   color: #111827;
-  font-size: 1rem;
+  font-size: 0.95rem;
   text-decoration: none;
   flex: 1;
   min-width: 0;
@@ -574,7 +574,7 @@ body {
 
 .top-trail-count {
   flex-shrink: 0;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #6b7280;
   font-weight: 500;
 }
@@ -584,12 +584,12 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
-  font-size: 0.85rem;
   margin-top: 4px;
 }
 
 .top-trail-species-link {
   color: #6b7280;
+  font-size: 0.95rem;
   text-decoration: none;
 }
 
@@ -641,12 +641,17 @@ body {
 .top-species-name {
   flex: 1;
   font-weight: 500;
-  color: #374151;
-  font-size: 0.9rem;
+  color: #111827;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.top-species-name:hover {
+  text-decoration: underline;
 }
 
 .top-species-count {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #6b7280;
   font-weight: 500;
 }

@@ -191,16 +191,6 @@ function App() {
           <p>Wildflower Trail Finder</p>
         </div>
         <div className="header-actions">
-          {listLoading && (
-            <span className="header-loading" aria-live="polite">
-              Loading list…
-            </span>
-          )}
-          {activeTab === 'map' && mapLoading && (
-            <span className="header-loading" aria-live="polite">
-              {mapLoadingStatus || 'Loading map…'}
-            </span>
-          )}
           <StateSelector
             value={selectedState}
             onChange={setSelectedState}
