@@ -87,22 +87,8 @@ export async function fetchObservations(state) {
   return data;
 }
 
-/**
- * Look up AllTrails direct trail URL. Returns { url } or { url: null }.
- * Uses cached DB results; only calls SerpAPI for first-time lookups.
- */
-export async function fetchAllTrailsLookup(trailName, state) {
-  try {
-    const res = await fetchWithTimeout(
-      apiUrl(`/api/alltrails-lookup?trailName=${encodeURIComponent(trailName)}&state=${encodeURIComponent(state)}`)
-    );
-    if (!res.ok) return { url: null };
-    const data = await parseJsonResponse(res);
-    return data;
-  } catch {
-    return { url: null };
-  }
-}
+// AllTrails lookup disabled to reduce serverless function count
+// export async function fetchAllTrailsLookup(trailName, state) { ... }
 
 /**
  * Pre-built trail → observation counts (from trail_observation_counts table).
